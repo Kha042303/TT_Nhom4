@@ -13,18 +13,14 @@ const Post = sequelize.define(
     user_id: {
       type: DataTypes.INTEGER,
       allowNull: false
-    },
-    book_id: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      defaultValue: null
-    },
+    }
+    ,
     title: {
       type: DataTypes.STRING(255),
       allowNull: false
     },
     content: {
-      type: DataTypes.TEXT,
+      type: DataTypes.LONGTEXT,
       allowNull: true,
       defaultValue: null
     },
@@ -46,6 +42,11 @@ const Post = sequelize.define(
       type: DataTypes.ENUM("visible", "hidden"),
       allowNull: true,
       defaultValue: "visible"
+    },
+    deleted: {
+      type: DataTypes.ENUM("true", "false"),
+      allowNull: false,
+      defaultValue: "false"
     }
   },
   {
@@ -54,7 +55,7 @@ const Post = sequelize.define(
   }
 );
 
-// HOOK: cập nhật updated_at trước khi UPDATE
+// cập nhật updated_at trước khi UPDATE
 Post.beforeUpdate((post) => {
   post.setDataValue("updated_at", new Date());
 });

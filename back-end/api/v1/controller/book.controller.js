@@ -26,7 +26,7 @@ module.exports.index = async (req, res) => {
     // Pagination init
     let initPagination = {
       currentPage: 1,
-      limitItems: 2,
+      limitItems: 8,
     };
 
     const countBooks = await books.count({ where: find.where });
@@ -103,11 +103,9 @@ module.exports.changeStatus = async (req, res) => {
 module.exports.create = async (req, res) => {
   try {
     const body = req.body;
-
-    // ===========================
-    // 1) CHECK ENUM status
-    // ===========================
     const allowedStatus = ["active", "inactive"];
+
+    // Validate status
     if (body.status && !allowedStatus.includes(body.status)) {
       return res.status(400).json({
         code: 400,
@@ -115,10 +113,16 @@ module.exports.create = async (req, res) => {
       });
     }
 
-    // ===========================
-    // 2) TẠO BOOK TRONG MYSQL (SEQUELIZE)
-    // ===========================
+    //NHIỀU ẢNH: multer.array("images", 10) → req.files là MẢNG
+    if (req.files && req.files.length > 0) {
+      // Tạo mảng path ảnh để lưu vào DB
+      const imagePaths = req.files.map((file) => `/images/books/${file.filename}`);
+      // Cột image_url (longtext) → lưu JSON string
+      body.image_url = JSON.stringify(imagePaths);
+    }
+
     const data = await books.create(body);
+
     return res.json({
       code: 200,
       message: "Tạo sách thành công!",
@@ -126,7 +130,6 @@ module.exports.create = async (req, res) => {
     });
 
   } catch (error) {
-    
     return res.status(500).json({
       code: 500,
       message: "Lỗi server!",
@@ -140,10 +143,6 @@ module.exports.edit = async (req, res) => {
   try {
     const id = req.params.id;      // book_id
     const body = req.body;         // dữ liệu cần update
-
-    // ===========================
-    // 1) CHECK ENUM status (nếu có gửi lên)
-    // ===========================
     const allowedStatus = ["active", "inactive"];
     if (body.status && !allowedStatus.includes(body.status)) {
       return res.status(400).json({
@@ -151,10 +150,10 @@ module.exports.edit = async (req, res) => {
         message: "Status không hợp lệ! Chỉ được: active, inactive"
       });
     }
-
-    // ===========================
-    // 2) UPDATE TRONG DB
-    // ===========================
+      if (req.files && req.files.length > 0) {
+      const imagePaths = req.files.map((file) => `/images/books/${file.filename}`);
+      body.image_url = JSON.stringify(imagePaths);
+    }
     const [affectedRows] = await books.update(body, {
       where: { book_id: id }
     });
@@ -166,19 +165,13 @@ module.exports.edit = async (req, res) => {
         message: "Không tìm thấy sách để cập nhật!"
       });
     }
-
-    // ===========================
-    // 3) TRẢ KẾT QUẢ THÀNH CÔNG
-    // ===========================
+   
     res.json({
       code: 200,
       message: "Cập nhật thành công!"
     });
 
   } catch (error) {
-    // ===========================
-    // 4) LỖI SERVER
-    // ===========================
     res.status(500).json({
       code: 500,
       message: "Lỗi server!",
