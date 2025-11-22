@@ -1,7 +1,8 @@
 const Bookroute = require("./book.route.js");
-
+const Userroute = require("./users.route.js");
 module.exports = (app) => {
 
   const version = "/api/v1";
   app.use(version + "/book", Bookroute);
+  app.use(version + "/user", Userroute);
 };

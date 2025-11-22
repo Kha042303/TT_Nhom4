@@ -1,8 +1,17 @@
-import { Router } from "express";
-import * as controller from "../../controller/client/user.controller.js";
+const express = require("express");
+const router = express.Router();
+const userController = require("../controller/user.controller.js");
+const Validate = require("../../../validates/user.validates.js");
 
-const router = Router();
+router.post("/register", Validate.registerPost, userController.register);
+router.post("/login", userController.login);
+// router.post("/password/forgot", userController.forgotPassword);
+router.get("/profile", userController.getProfile);
+router.patch("/profile/edit/:id", userController.editProfile);
+router.patch("/change-password/:id", userController.changePassword);
 
-router.get("/", controller.index);
+module.exports = router;
 
-export const Userroute = router;
+
+
+

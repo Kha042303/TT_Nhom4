@@ -49,6 +49,38 @@ module.exports.index = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+// GET /api/v1/book/detail/:id
+module.exports.detail = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const book = await books.findOne({
+      where: {
+        book_id: id,
+        deleted: "false" 
+      }
+    });
+
+    if (!book) {
+      return res.status(404).json({
+        code: 404,
+        message: "Không tìm thấy sách!"
+      });
+    }
+
+    res.json({
+      code: 200,
+      data: book
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: "Lỗi server!",
+      error: error.message
+    });
+  }
+};
 
 // PATCH /api/v1/book/change-status/:id
 module.exports.changeStatus = async (req, res) => {
