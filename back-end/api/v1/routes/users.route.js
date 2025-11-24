@@ -7,9 +7,9 @@ router.post("/register", Validate.registerPost, userController.register);
 router.post("/login", userController.login);
 // router.post("/password/forgot", userController.forgotPassword);
 router.get("/profile", userController.getProfile);
+router.get("/profileid/:id", userController.getProfileid);
 router.patch("/profile/edit/:id", userController.editProfile);
 router.patch("/change-password/:id", userController.changePassword);
-
 module.exports = router;
 
 

@@ -41,7 +41,6 @@ module.exports.register = async (req, res) => {
     });
   }
 };
-
 // POST /api/v1/user/login
 module.exports.login = async (req, res) => {
  const email = req.body.email;
@@ -104,7 +103,6 @@ module.exports.getProfile = async (req, res) => {
         message: "Không tìm thấy token trong cookie"
       });
     }
-
     const user = await User.findOne({
       where: {
         token: token,
@@ -143,12 +141,52 @@ module.exports.getProfile = async (req, res) => {
     });
   }
 };
+// GET /api/v1/user/profileid/:id
+module.exports.getProfileid = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const user = await User.findOne({
+      where: {
+        user_id: id,
+        deleted: "false"
+      },
+      attributes: [
+        "user_id",  
+        "full_name",
+        "email",
+        "address",
+        "phone",
+        "role",
+        "create_at",
+        "status"
+      ]
+    });
+    if (!user) {
+     res.status(404).json({
+      code:404,
+      message:"Không tìm thấy user với id này"
+     });
+     return;
+    }
 
-
-module.exports.editProfile = async (req, res) => {
-  res.send("editProfile API chưa viết");
+    return res.json({
+      code: 200,
+      message: "Lấy thông tin user thành công",
+      data: user
+    });
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: "Lỗi server",
+      error: error.message
+    });
+  }
 };
 
+module.exports.editProfile = async (req, res) => {
+const id = req.params.id;
+
+};
 module.exports.changePassword = async (req, res) => {
   res.send("changePassword API chưa viết");
 };

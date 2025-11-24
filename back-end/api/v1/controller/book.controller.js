@@ -43,7 +43,15 @@ module.exports.index = async (req, res) => {
       offset: pagination.skip
     });
 
-    res.json({ data: Book });
+    const data = Book.map(item => {
+  return {
+    ...item.dataValues,
+    image_url: item.image_url ? JSON.parse(item.image_url) : []
+  };
+});
+
+res.json({ data });
+
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: err.message });
@@ -69,9 +77,13 @@ module.exports.detail = async (req, res) => {
     }
 
     res.json({
-      code: 200,
-      data: book
-    });
+  code: 200,
+  data: {
+    ...book.dataValues,
+    image_url: book.image_url ? JSON.parse(book.image_url) : []
+  }
+});
+
 
   } catch (error) {
     res.status(500).json({
