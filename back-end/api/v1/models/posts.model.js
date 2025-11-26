@@ -1,5 +1,6 @@
-import { DataTypes } from "sequelize";
-import sequelize from "../../../config/database.js";
+// back-end/api/v1/models/posts.model.js
+const { DataTypes } = require("sequelize");
+const { sequelize } = require("../../../config/database.js");
 
 const Post = sequelize.define(
   "Post",
@@ -13,14 +14,13 @@ const Post = sequelize.define(
     user_id: {
       type: DataTypes.INTEGER,
       allowNull: false
-    }
-    ,
+    },
     title: {
       type: DataTypes.STRING(255),
       allowNull: false
     },
     content: {
-      type: DataTypes.LONGTEXT,
+      type: DataTypes.TEXT("long"),
       allowNull: true,
       defaultValue: null
     },
@@ -47,6 +47,11 @@ const Post = sequelize.define(
       type: DataTypes.ENUM("true", "false"),
       allowNull: false,
       defaultValue: "false"
+    },
+    image_url: {
+  type: DataTypes.TEXT("long"),
+      allowNull: true,
+      defaultValue: null
     }
   },
   {
@@ -55,9 +60,8 @@ const Post = sequelize.define(
   }
 );
 
-// cập nhật updated_at trước khi UPDATE
 Post.beforeUpdate((post) => {
   post.setDataValue("updated_at", new Date());
 });
 
-export default Post;
+module.exports = Post;

@@ -100,9 +100,6 @@ module.exports.changeStatus = async (req, res) => {
     const id = req.params.id;
     const status = req.body.status; 
 
-    // ===========================
-    // ✔ CHECK ENUM
-    // ===========================
     const allowedStatus = ["active", "inactive"];
 
     if (!allowedStatus.includes(status)) {
@@ -112,9 +109,6 @@ module.exports.changeStatus = async (req, res) => {
       });
     }
 
-    // ===========================
-    // ✔ UPDATE DATABASE
-    // ===========================
     const result = await books.update(
       { status: status },
       { where: { book_id: id } }

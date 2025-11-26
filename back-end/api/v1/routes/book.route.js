@@ -1,21 +1,20 @@
-// back-end/api/v1/routes/book.route.js
 const express = require("express");
 const router = express.Router();
 
+const auth = require("../middlewares/auth.middleware");
 const bookController = require("../controller/book.controller.js");
-const upload = require("../middlewares/upload.middleware.js"); 
+const uploadBook = require("../middlewares/book.upload.middleware.js");
 
-// GET /api/v1/book
 router.get("/", bookController.index);
-// GET /api/v1/book/detail/:id
+
 router.get("/detail/:id", bookController.detail);
-// PATCH /api/v1/book/change-status/:id
-router.patch("/change-status/:id", bookController.changeStatus);
-// POST /api/v1/book/create
-router.post("/create", upload.array("images", 10), bookController.create);
-// PATCH /api/v1/book/edit/:id
-router.patch("/edit/:id", upload.array("images", 10), bookController.edit);
-// DELETE /api/v1/book/delete/:id
-router.delete("/delete/:id", bookController.delete);
+
+router.post("/create", auth, uploadBook, bookController.create);
+
+router.patch("/edit/:id", auth, uploadBook, bookController.edit);
+
+router.patch("/change-status/:id", auth, bookController.changeStatus);
+
+router.delete("/delete/:id", auth, bookController.delete);
 
 module.exports = router;

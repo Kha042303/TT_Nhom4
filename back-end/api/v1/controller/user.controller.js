@@ -184,8 +184,6 @@ module.exports.getProfileid = async (req, res) => {
 };
 
 module.exports.editProfile = async (req, res) => {
-const id = req.params.id;
-
 };
 module.exports.changePassword = async (req, res) => {
   res.send("changePassword API chưa viết");
