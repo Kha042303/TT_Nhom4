@@ -233,7 +233,7 @@ function App() {
               </>
             }
           />
-          <Route path="/baidang" element={<BaiDang />} />
+          <Route path="/baidang" element={<BaiDang/>} />
         </Routes>
 
         {/* FOOTER */}
