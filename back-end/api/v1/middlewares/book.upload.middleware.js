@@ -4,7 +4,6 @@ const path = require("path");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // thư mục uploads/ nằm ngay dưới back-end/
     cb(null, "images/books/");
   },
   filename: (req, file, cb) => {

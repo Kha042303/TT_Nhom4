@@ -36,7 +36,7 @@ module.exports.register = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       code: 500,
-      message: "Lỗi server",
+      message: "Lỗi khi đăng ký",
       error: error.message
     });
   }
@@ -46,6 +46,13 @@ module.exports.login = async (req, res) => {
  const email = req.body.email;
  const password=req.body.password;
 
+ if( !email || !password ){
+   res.json({
+    code:400,
+    message:"Thiếu email hoặc password"
+   });
+   return;
+ }
  const user = await User.findOne({
     where: {
       email: email,
@@ -75,7 +82,25 @@ res.cookie("token", token );
     token: user.token
   });
 };
-// POST /api/v1/user/password/forgot
+// PUT /api/v1/user/logout
+module.exports.logout = async (req, res) => {
+
+  try {
+    const token = req.cookies?.refreshToken;
+    res.clearCookie("token");
+    res.json({
+      code: 200,
+      message: "Đăng xuất thành công"
+    });
+  }
+  catch (error) {
+    return res.status(500).json({
+      code: 500,
+      message: "Lỗi khi đăng xuất",
+      error: error.message
+    });
+  }
+};
 // module.exports.forgotPassword = async (req, res) => {
 //   const email = req.body.email;
 //    const user = await User.findOne({
@@ -136,7 +161,7 @@ module.exports.getProfile = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       code: 500,
-      message: "Lỗi server",
+      message: "Lỗi khi lấy thông tin user",
       error: error.message
     });
   }
@@ -177,14 +202,9 @@ module.exports.getProfileid = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       code: 500,
-      message: "Lỗi server",
+      message: "Lỗi khi lấy thông tin user",
       error: error.message
     });
   }
 };
 
-module.exports.editProfile = async (req, res) => {
-};
-module.exports.changePassword = async (req, res) => {
-  res.send("changePassword API chưa viết");
-};

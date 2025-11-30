@@ -34,14 +34,14 @@ module.exports.index = async (req, res) => {
     }));
     res.json({
       code: 200,
-      message: "Lấy danh sách bài viết thành công!",
+      message: "Lấy danh sách bài viết thành công",
       data,
       pagination
     });
   } catch (error) {
     res.status(500).json({
       code: 500,
-      message: "Lỗi server!",
+      message: "Lỗi khi lấy danh sách bài viết",
       error: error.message
     });
   }
@@ -61,7 +61,7 @@ module.exports.detail = async (req, res) => {
     if (!post) {
       return res.status(404).json({
         code: 404,
-        message: "Không tìm thấy bài viết!"
+        message: "Không tìm thấy bài viết"
       });
     }
 
@@ -76,7 +76,7 @@ module.exports.detail = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       code: 500,
-      message: "Lỗi server!",
+      message: "Lỗi khi lấy chi tiết bài viết",
       error: error.message
     });
   }
@@ -107,19 +107,19 @@ module.exports.changeStatus = async (req, res) => {
     if (affectedRows === 0) {
       return res.status(404).json({
         code: 404,
-        message: "Không tìm thấy bài viết hoặc đã bị xóa!"
+        message: "Không tìm thấy bài viết hoặc đã bị xóa"
       });
     }
 
     res.json({
       code: 200,
-      message: "Cập nhật trạng thái thành công!"
+      message: "Cập nhật trạng thái thành công"
     });
 
   } catch (error) {
     res.status(500).json({
       code: 500,
-      message: "Lỗi server!",
+      message: "Lỗi khi cập nhật trạng thái",
       error: error.message
     });
   }
@@ -136,7 +136,7 @@ module.exports.create = async (req, res) => {
     if (!body.title) {
       return res.status(400).json({
         code: 400,
-        message: "title là bắt buộc!"
+        message: "title là bắt buộc"
       });
     }
 
@@ -150,7 +150,7 @@ module.exports.create = async (req, res) => {
     if (body.status && !allowedStatus.includes(body.status)) {
       return res.status(400).json({
         code: 400,
-        message: "Status không hợp lệ!"
+        message: "Status không hợp lệ"
       });
     }
 
@@ -165,14 +165,14 @@ module.exports.create = async (req, res) => {
 
     return res.json({
       code: 200,
-      message: "Tạo bài viết thành công!",
+      message: "Tạo bài viết thành công",
       data
     });
 
   } catch (error) {
     return res.status(500).json({
       code: 500,
-      message: "Lỗi server!",
+      message: "Lỗi khi tạo bài viết",
       error: error.message
     });
   }
@@ -183,7 +183,7 @@ module.exports.edit = async (req, res) => {
   try {
     const id = req.params.id;
     const body = req.body;
-    const userId = req.user.user_id; // từ token
+    const userId = req.user.user_id; 
 
     const post = await Post.findOne({
       where: {
@@ -195,7 +195,7 @@ module.exports.edit = async (req, res) => {
     if (!post) {
       return res.status(404).json({
         code: 404,
-        message: "Không tìm thấy bài viết!"
+        message: "Không tìm thấy bài viết"
       });
     }
 
@@ -208,7 +208,7 @@ module.exports.edit = async (req, res) => {
     if (post.user_id !== userId) {
       return res.status(403).json({
         code: 403,
-        message: "Bạn không có quyền sửa bài viết này!"
+        message: "Bạn không có quyền sửa bài viết này"
       });
     }
 
@@ -216,7 +216,7 @@ module.exports.edit = async (req, res) => {
     if (body.status && !allowedStatus.includes(body.status)) {
       return res.status(400).json({
         code: 400,
-        message: "Status không hợp lệ!"
+        message: "Status không hợp lệ"
       });
     }
 
@@ -253,7 +253,7 @@ module.exports.edit = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       code: 500,
-      message: "Lỗi server!",
+      message: "Lỗi khi cập nhật bài viết",
       error: error.message
     });
   }
@@ -272,14 +272,14 @@ module.exports.delete = async (req, res) => {
     if (!post) {
       return res.status(404).json({
         code: 404,
-        message: "Không tìm thấy bài viết!"
+        message: "Không tìm thấy bài viết"
       });
     }
 
     if (post.user_id !== userId) {
       return res.status(403).json({
         code: 403,
-        message: "Bạn không có quyền xóa bài viết này!"
+        message: "Bạn không có quyền xóa bài viết này"
       });
     }
 
@@ -290,13 +290,13 @@ module.exports.delete = async (req, res) => {
 
     res.json({
       code: 200,
-      message: "Xóa bài viết thành công!"
+      message: "Xóa bài viết thành công"
     });
 
   } catch (error) {
     res.status(500).json({
       code: 500,
-      message: "Lỗi server!",
+      message: "Lỗi khi xóa bài viết",
       error: error.message
     });
   }
@@ -327,7 +327,7 @@ module.exports.myPosts = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       code: 500,
-      message: "Lỗi server!",
+      message: "Lỗi khi lấy danh sách bài viết của bạn",
       error: error.message
     });
   }

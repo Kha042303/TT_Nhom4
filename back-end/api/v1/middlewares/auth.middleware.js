@@ -4,20 +4,12 @@ module.exports = async (req, res, next) => {
   try {
     // Lấy token từ cookie trước
     let token = req.cookies.token;
-
-    // Nếu không có trong cookie thì lấy từ header Authorization
-    if (!token && req.headers.authorization) {
-      token = req.headers.authorization.split(" ")[1];
-    }
-
     if (!token) {
       return res.status(401).json({
         code: 401,
         message: "Bạn phải đăng nhập trước!"
       });
     }
-
-    // Kiểm tra token trong bảng users
     const user = await User.findOne({
       where: {
         token: token,
