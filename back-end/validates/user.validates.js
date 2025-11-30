@@ -7,7 +7,6 @@ module.exports.registerPost = (req, res, next) => {
   if (!req.body.email?.trim()) {
     return res.status(400).json({ message: "Email không được để trống!" });
   }
-
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(req.body.email)) {
     return res.status(400).json({ message: "Email không hợp lệ!" });

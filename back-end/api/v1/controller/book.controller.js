@@ -10,19 +10,16 @@ module.exports.index = async (req, res) => {
       where: { deleted: "false" },
       order: []
     };
-
     // Filter status
     if (req.query.status) {
       find.where.status = req.query.status;
     }
-
     // Search
     let objectSearch = searchHelper(req.query);
 
     if (req.query.keyword) {
       find.where.title = { [Op.regexp]: objectSearch.keyword }; 
     }
-
     // Pagination init
     let initPagination = {
       currentPage: 1,
@@ -36,7 +33,7 @@ module.exports.index = async (req, res) => {
     if (req.query.sortKey && req.query.sortValue) {
       find.order.push([req.query.sortKey, req.query.sortValue]);
     }
-
+    
     const Book = await books.findAll({
       ...find,
       limit: pagination.limitItems,
@@ -72,7 +69,7 @@ module.exports.detail = async (req, res) => {
     if (!book) {
       return res.status(404).json({
         code: 404,
-        message: "Không tìm thấy sách!"
+        message: "không tìm thấy"
       });
     }
 
@@ -88,12 +85,11 @@ module.exports.detail = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       code: 500,
-      message: "Lỗi server!",
+      message: "lỗi",
       error: error.message
     });
   }
 };
-
 // PATCH /api/v1/book/change-status/:id
 module.exports.changeStatus = async (req, res) => {
   try {
@@ -105,7 +101,7 @@ module.exports.changeStatus = async (req, res) => {
     if (!allowedStatus.includes(status)) {
       return res.status(400).json({
         code: 400,
-        message: "Status không hợp lệ! Chỉ được: active, inactive"
+        message: " Chỉ được dùngactive, inactive"
       });
     }
 
@@ -114,78 +110,66 @@ module.exports.changeStatus = async (req, res) => {
       { where: { book_id: id } }
     );
 
-    // Nếu không update được (ID không tồn tại)
     if (result[0] === 0) {
       return res.status(404).json({
-        code: 404,
-        message: "Không tìm thấy sách để cập nhật!"
+        code: 400,
+        message: "Không tìm thấy sách"
       });
     }
-
-    // Thành công
     res.json({
       code: 200,
-      message: "Cập nhật trạng thái thành công!"
+      message: "Cập nhật trạng thái thành công"
     });
 
   } catch (error) {
     res.status(500).json({
       code: 500,
-      message: "Lỗi server!",
+      message: "Lỗi ",
       error: error.message
     });
   }
 };
-
 // [POST] /api/v1/book/create
 module.exports.create = async (req, res) => {
   try {
     const body = req.body;
     const allowedStatus = ["active", "inactive"];
-
-    // Validate status
     if (body.status && !allowedStatus.includes(body.status)) {
       return res.status(400).json({
         code: 400,
-        message: "Status không hợp lệ! Chỉ được: active, inactive"
+        message: "Status Chỉ được: active, inactive"
       });
     }
-
-    //NHIỀU ẢNH: multer.array("images", 10) → req.files là MẢNG
     if (req.files && req.files.length > 0) {
-      // Tạo mảng path ảnh để lưu vào DB
       const imagePaths = req.files.map((file) => `/images/books/${file.filename}`);
-      // Cột image_url (longtext) → lưu JSON string
       body.image_url = JSON.stringify(imagePaths);
     }
-
     const data = await books.create(body);
 
     return res.json({
       code: 200,
-      message: "Tạo sách thành công!",
+      message: "Tạo thành công",
       data: data
     });
 
   } catch (error) {
     return res.status(500).json({
       code: 500,
-      message: "Lỗi server!",
+      message: "Lỗi ",
       error: error.message
     });
   }
 };
-
 // PATCH /api/v1/book/edit/:id
 module.exports.edit = async (req, res) => {
   try {
-    const id = req.params.id;      // book_id
-    const body = req.body;         // dữ liệu cần update
+    const id = req.params.id;      
+    const body = req.body;         
     const allowedStatus = ["active", "inactive"];
     if (body.status && !allowedStatus.includes(body.status)) {
       return res.status(400).json({
         code: 400,
-        message: "Status không hợp lệ! Chỉ được: active, inactive"
+        message: "Status chỉ được active, inactive"
       });
     }
       if (req.files && req.files.length > 0) {
@@ -196,23 +180,22 @@ module.exports.edit = async (req, res) => {
       where: { book_id: id }
     });
 
-    // affectedRows = 0 => không có bản ghi nào được update
     if (affectedRows === 0) {
       return res.status(404).json({
         code: 404,
-        message: "Không tìm thấy sách để cập nhật!"
+        message: "Không tìm thấy sách "
       });
     }
    
     res.json({
       code: 200,
-      message: "Cập nhật thành công!"
+      message: "Cập nhật thành công"
     });
 
   } catch (error) {
     res.status(500).json({
       code: 500,
-      message: "Lỗi server!",
+      message: "Lỗi ",
       error: error.message
     });
   }
@@ -222,37 +205,32 @@ module.exports.delete = async (req, res) => {
   try {
     const id = req.params.id;
 
-    // ===========================
-    // 1) UPDATE deleted = "true"
-    // ===========================
     const [affectedRows] = await books.update(
       {
-        deleted: "true",       // vì bạn đang dùng ENUM("true","false")
-        deletedAt: new Date()  // nếu bạn có cột này
+        deleted: "true",     
+        deletedAt: new Date() 
       },
       {
         where: { book_id: id }
       }
     );
 
-    // Nếu không tìm thấy sách
     if (affectedRows === 0) {
       return res.status(404).json({
         code: 404,
-        message: "Không tìm thấy sách để xóa!"
+        message: "Không tìm thấy sách "
       });
     }
 
-    // Thành công
     res.json({
       code: 200,
-      message: "Xóa thành công!"
+      message: "Xóa thành công"
     });
 
   } catch (error) {
     res.status(500).json({
       code: 500,
-      message: "Lỗi server!",
+      message: "Lỗi",
       error: error.message
     });
   }
