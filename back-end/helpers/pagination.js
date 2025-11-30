@@ -1,5 +1,4 @@
 module.exports = (pagination, query, totalItems) => {
-  // Convert page if exists
   if (query.page) {
     pagination.currentPage = parseInt(query.page) ;
   }
@@ -8,6 +7,5 @@ module.exports = (pagination, query, totalItems) => {
   }
   pagination.skip = (pagination.currentPage - 1) * pagination.limitItems;
   pagination.totalPage = Math.ceil(totalItems / pagination.limitItems);
-
   return pagination;
 };

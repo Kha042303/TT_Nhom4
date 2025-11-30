@@ -10,19 +10,16 @@ module.exports.index = async (req, res) => {
       where: { deleted: "false" },
       order: []
     };
-
     // Filter status
     if (req.query.status) {
       find.where.status = req.query.status;
     }
-
     // Search
     let objectSearch = searchHelper(req.query);
 
     if (req.query.keyword) {
       find.where.title = { [Op.regexp]: objectSearch.keyword }; 
     }
-
     // Pagination init
     let initPagination = {
       currentPage: 1,
@@ -36,7 +33,7 @@ module.exports.index = async (req, res) => {
     if (req.query.sortKey && req.query.sortValue) {
       find.order.push([req.query.sortKey, req.query.sortValue]);
     }
-
+    
     const Book = await books.findAll({
       ...find,
       limit: pagination.limitItems,
@@ -93,7 +90,6 @@ module.exports.detail = async (req, res) => {
     });
   }
 };
-
 // PATCH /api/v1/book/change-status/:id
 module.exports.changeStatus = async (req, res) => {
   try {
@@ -136,7 +132,6 @@ module.exports.changeStatus = async (req, res) => {
     });
   }
 };
-
 // [POST] /api/v1/book/create
 module.exports.create = async (req, res) => {
   try {
@@ -150,12 +145,8 @@ module.exports.create = async (req, res) => {
         message: "Status không hợp lệ! Chỉ được: active, inactive"
       });
     }
-
-    //NHIỀU ẢNH: multer.array("images", 10) → req.files là MẢNG
     if (req.files && req.files.length > 0) {
-      // Tạo mảng path ảnh để lưu vào DB
       const imagePaths = req.files.map((file) => `/images/books/${file.filename}`);
-      // Cột image_url (longtext) → lưu JSON string
       body.image_url = JSON.stringify(imagePaths);
     }
 
@@ -175,12 +166,11 @@ module.exports.create = async (req, res) => {
     });
   }
 };
-
 // PATCH /api/v1/book/edit/:id
 module.exports.edit = async (req, res) => {
   try {
-    const id = req.params.id;      // book_id
-    const body = req.body;         // dữ liệu cần update
+    const id = req.params.id;      
+    const body = req.body;         
     const allowedStatus = ["active", "inactive"];
     if (body.status && !allowedStatus.includes(body.status)) {
       return res.status(400).json({
@@ -196,7 +186,6 @@ module.exports.edit = async (req, res) => {
       where: { book_id: id }
     });
 
-    // affectedRows = 0 => không có bản ghi nào được update
     if (affectedRows === 0) {
       return res.status(404).json({
         code: 404,
@@ -222,13 +211,10 @@ module.exports.delete = async (req, res) => {
   try {
     const id = req.params.id;
 
-    // ===========================
-    // 1) UPDATE deleted = "true"
-    // ===========================
     const [affectedRows] = await books.update(
       {
-        deleted: "true",       // vì bạn đang dùng ENUM("true","false")
-        deletedAt: new Date()  // nếu bạn có cột này
+        deleted: "true",     
+        deletedAt: new Date() 
       },
       {
         where: { book_id: id }

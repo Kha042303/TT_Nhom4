@@ -96,7 +96,7 @@ res.cookie("token", token );
 module.exports.getProfile = async (req, res) => {
   try {
     const token = req.cookies.token;
-
+    
     if (!token) {
       return res.status(400).json({
         code: 400,

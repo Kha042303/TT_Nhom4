@@ -28,7 +28,7 @@ module.exports = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({
         code: 401,
-        message: "Token không hợp lệ hoặc đã bị thu hồi!"
+        message: "Token không hợp lệ!"
       });
     }
 

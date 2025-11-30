@@ -10,59 +10,34 @@ module.exports.index = async (req, res) => {
       where: { deleted: "false" },
       order: [["create_at", "DESC"]]
     };
-
     // Filter status
     if (req.query.status) {
       find.where.status = req.query.status;
     }
-
-    // Filter theo user_id (nếu cần)
-    if (req.query.user_id) {
-      find.where.user_id = req.query.user_id;
-    }
-
-    // Search theo keyword (title / content)
-    let objectSearch = searchHelper(req.query);
-
-    if (req.query.keyword) {
-      find.where[Op.or] = [
-        { title: { [Op.regexp]: objectSearch.keyword } },
-        { content: { [Op.regexp]: objectSearch.keyword } }
-      ];
-    }
-
     // Pagination init
     let initPagination = {
       currentPage: 1,
       limitItems: 8
     };
-
     const totalPosts = await Post.count({ where: find.where });
-
     const pagination = paginationHelper(
       initPagination,
       req.query,
       totalPosts
     );
-
     find.limit = pagination.limitItems;
     find.offset = pagination.skip;
-
     const posts = await Post.findAll(find);
-
-    // Parse ảnh
     const data = posts.map(item => ({
       ...item.dataValues,
       images: item.images ? JSON.parse(item.images) : []
     }));
-
     res.json({
       code: 200,
       message: "Lấy danh sách bài viết thành công!",
       data,
       pagination
     });
-
   } catch (error) {
     res.status(500).json({
       code: 500,
@@ -71,7 +46,6 @@ module.exports.index = async (req, res) => {
     });
   }
 };
-
 // GET /api/v1/post/detail/:id
 module.exports.detail = async (req, res) => {
   try {
@@ -107,7 +81,6 @@ module.exports.detail = async (req, res) => {
     });
   }
 };
-
 // PATCH /api/v1/post/change-status/:id
 module.exports.changeStatus = async (req, res) => {
   try {
@@ -122,7 +95,6 @@ module.exports.changeStatus = async (req, res) => {
         message: "Status không hợp lệ! Chỉ được: visible, hidden"
       });
     }
-
     const [affectedRows] = await Post.update(
       { status },
       {
@@ -132,7 +104,6 @@ module.exports.changeStatus = async (req, res) => {
         }
       }
     );
-
     if (affectedRows === 0) {
       return res.status(404).json({
         code: 404,
@@ -158,7 +129,6 @@ module.exports.changeStatus = async (req, res) => {
 module.exports.create = async (req, res) => {
   try {
     const body = req.body;
-
     // user_id lấy từ token, không cho client gửi
     const userId = req.user.user_id;
 
