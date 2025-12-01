@@ -11,10 +11,11 @@ router.get("/", controller.index);
 // DETAIL
 router.get("/detail/:id", controller.detail);
 
-// CREATE (có upload ảnh)
+// CREATE
 router.post("/create", auth, uploadPost, controller.create);
-
-// EDIT (có upload ảnh)
+// CHANGE STATUS
+router.patch("/change-status/:id", auth, controller.changeStatus);
+// EDIT
 router.patch("/edit/:id", auth, uploadPost, controller.edit);
 
 // DELETE
