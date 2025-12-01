@@ -1,5 +1,5 @@
-import { DataTypes } from "sequelize";
-import sequelize from "../../../config/database.js";
+const { DataTypes } = require("sequelize");
+const { sequelize } = require("../../../config/database.js");
 
 const Chat = sequelize.define(
   "Chat",
@@ -8,35 +8,43 @@ const Chat = sequelize.define(
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
-      allowNull: false
     },
     message: {
       type: DataTypes.TEXT("long"),
-      allowNull: false
+      allowNull: false,
     },
     send_at: {
       type: DataTypes.DATE,
-      allowNull: true,
-      defaultValue: DataTypes.NOW
+      defaultValue: DataTypes.NOW,
     },
     is_read: {
       type: DataTypes.BOOLEAN,
-      allowNull: true,
-      defaultValue: 0
+      defaultValue: false,
     },
     sender_id: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      allowNull: false,
     },
     receiver_id: {
       type: DataTypes.INTEGER,
-      allowNull: false
-    }
+      allowNull: false,
+    },
   },
   {
     tableName: "chats",
-    timestamps: false
+    timestamps: false,
   }
 );
 
-export default Chat;
+Chat.associate = (models) => {
+  Chat.belongsTo(models.User, {
+    foreignKey: "sender_id",
+    as: "sender",
+  });
+
+  Chat.belongsTo(models.User, {
+    foreignKey: "receiver_id",
+    as: "receiver",
+  });
+};
+module.exports = Chat;

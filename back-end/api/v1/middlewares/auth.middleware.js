@@ -2,7 +2,6 @@ const User = require("../models/user.model.js");
 
 module.exports = async (req, res, next) => {
   try {
-    // Lấy token từ cookie trước
     let token = req.cookies.token;
     if (!token) {
       return res.status(401).json({
@@ -24,7 +23,6 @@ module.exports = async (req, res, next) => {
       });
     }
 
-    // Lưu user vào req để controller dùng
     req.user = user;
 
     next();

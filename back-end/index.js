@@ -7,12 +7,13 @@ const database = require("./config/database");
 require("dotenv").config();
 
 const routerVersion1 = require("./api/v1/routes/index.route");
+const setupSocket = require("./socket.io"); 
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT ;
 
 app.use(cors());
-app.use(cookieParser()); 
+app.use(cookieParser());
 database.connect();
 
 app.use(bodyParser.json());
@@ -21,6 +22,8 @@ app.use("/images", express.static(path.join(__dirname, "images")));
 
 routerVersion1(app);
 
-app.listen(PORT, () => {
-  console.log(`app listening on :${PORT}`);
+const server = setupSocket(app);
+
+server.listen(PORT, () => {
+  console.log(`App + Socket.IO running at port ${PORT}`);
 });
