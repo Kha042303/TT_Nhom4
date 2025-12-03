@@ -236,3 +236,79 @@ module.exports.getAllUsers = async (req, res) => {
     });
   }
 };
+// PATCH /api/v1/user/profile/editmyprofile
+module.exports.editProfile = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const { full_name, address, phone } = req.body;
+    await User.update(
+      {
+        full_name: full_name,
+        address: address,
+        phone: phone
+      },
+      {
+        where: { user_id: userId }
+      }
+    );
+    const updatedUser = await User.findOne({
+      where: { user_id: userId },
+      attributes: [
+        "user_id",
+        "full_name",
+        "email",
+        "address",
+        "phone",
+        "role",
+        "created_at",
+        "status"
+      ]
+    });
+    return res.json({
+      code: 200,
+      message: "Cập nhật thông tin cá nhân thành công",
+      data: updatedUser
+    });
+  } catch (error) {
+    return res.status(500).json({
+      code: 500,
+      message: "Lỗi khi cập nhật thông tin cá nhân",
+      error: error.message
+    });
+  }
+};
+ // PATCH /api/v1/user/change-status/:id
+module.exports.changeStatus = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const status = req.body.status;
+    const allowedStatus = ["active", "inactive","banned"];
+    if (!allowedStatus.includes(status)) {
+      return res.status(400).json({
+        code: 400,
+        message: " Chỉ được dùng active, inactive, banned"
+      });
+    }
+    const result = await User.update(
+      { status: status },
+      { where: { user_id: id } }
+    );
+
+    if (result[0] === 0) {
+      return res.status(404).json({
+        code: 400,
+        message: "Không tìm thấy người dùng"
+      });
+    } 
+    res.json({
+      code: 200,
+      message: "Cập nhật trạng thái thành công"
+    });
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: "Lỗi ",
+      error: error.message
+    });
+  }
+};
