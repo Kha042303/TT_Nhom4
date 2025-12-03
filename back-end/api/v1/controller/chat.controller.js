@@ -1,7 +1,6 @@
 const { Chat, User, Sequelize, sequelize } = require("../models");
 const { Op } = Sequelize;
 
-// POST /api/v1/chat/send
 module.exports.sendMessage = async (req, res) => {
   try {
     const senderId = req.user.user_id; 
@@ -34,8 +33,6 @@ module.exports.sendMessage = async (req, res) => {
     });
   }
 };
-
-// GET /api/v1/chat/:receiverId
 module.exports.getMessages = async (req, res) => {
   try {
     const senderId = parseInt(req.user.user_id);
@@ -48,7 +45,7 @@ module.exports.getMessages = async (req, res) => {
           { sender_id: receiverId, receiver_id: senderId }
         ]
       },
-      order: [["send_at", "ASC"]],
+      order: [["sent_at", "ASC"]],
       include: [
         { model: User, as: "sender", attributes: ["user_id", "full_name"] },
         { model: User, as: "receiver", attributes: ["user_id", "full_name"] }

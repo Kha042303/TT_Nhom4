@@ -140,7 +140,7 @@ module.exports.getProfile = async (req, res) => {
         "address",
         "phone",
         "role",
-        "create_at",
+        "created_at",
         "status"
       ]
     });
@@ -182,7 +182,7 @@ module.exports.getProfileid = async (req, res) => {
         "address",
         "phone",
         "role",
-        "create_at",
+        "created_at",
         "status"
       ]
     });
@@ -207,4 +207,33 @@ module.exports.getProfileid = async (req, res) => {
     });
   }
 };
-
+module.exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.findAll({
+      where: {
+        deleted: "false"
+      },
+      attributes: [
+        "user_id",  
+        "full_name",
+        "email",
+        "address",
+        "phone",
+        "role",
+        "created_at",
+        "status"
+      ]
+    }); 
+    return res.json({
+      code: 200,
+      message: "Lấy danh sách người dùng thành công",
+      data: users
+    });
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: "Lỗi khi lấy danh sách người dùng",
+      error: error.message
+    });
+  }
+};

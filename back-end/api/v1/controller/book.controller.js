@@ -10,17 +10,14 @@ module.exports.index = async (req, res) => {
       where: { deleted: "false" },
       order: []
     };
-    // Filter status
     if (req.query.status) {
       find.where.status = req.query.status;
     }
-    // Search
     let objectSearch = searchHelper(req.query);
 
     if (req.query.keyword) {
       find.where.title = { [Op.regexp]: objectSearch.keyword }; 
     }
-    // Pagination init
     let initPagination = {
       currentPage: 1,
       limitItems: 8,

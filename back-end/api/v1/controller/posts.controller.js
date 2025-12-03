@@ -8,7 +8,7 @@ module.exports.index = async (req, res) => {
   try {
     const find = {
       where: { deleted: "false" },
-      order: [["create_at", "DESC"]]
+      order: [["created_at", "DESC"]]
     };
     // Filter status
     if (req.query.status) {
@@ -129,7 +129,6 @@ module.exports.changeStatus = async (req, res) => {
 module.exports.create = async (req, res) => {
   try {
     const body = req.body;
-    // user_id lấy từ token, không cho client gửi
     const userId = req.user.user_id;
 
     // Kiểm tra title
@@ -312,7 +311,7 @@ module.exports.myPosts = async (req, res) => {
         user_id: userId,
         deleted: "false"
       },
-      order: [["create_at", "DESC"]]
+      order: [["created_at", "DESC"]]
     });
 
     return res.json({
