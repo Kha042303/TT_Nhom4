@@ -4,7 +4,7 @@ const { sequelize } = require("../../../config/database.js");
 const Report = sequelize.define(
   "Report",
   {
-    repost_id: {
+    report_id: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
@@ -14,7 +14,7 @@ const Report = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false
     },
-    repost_type: {
+    report_type: {
       type: DataTypes.ENUM("post", "user", "book", "chat"),
       allowNull: false
     },

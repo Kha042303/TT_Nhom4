@@ -4,10 +4,10 @@ const router = express.Router();
 const chatController = require("../controller/chat.controller.js");
 const authMiddleware = require("../middlewares/auth.middleware.js");
 
-// POST /api/v1/chat/send
+// gửi tin nhắn
 router.post("/send", authMiddleware, chatController.sendMessage);
 
-// GET /api/v1/chat/:receiverId
+// lấy tin nhắn giữa người dùng hiện tại và người dùng khác
 router.get("/:receiverId", authMiddleware, chatController.getMessages);
 
 module.exports = router;
