@@ -43,7 +43,7 @@ const User = sequelize.define(
       defaultValue: "user",
     },
 
-    create_at: {
+    created_at: {
       type: DataTypes.DATE,
       allowNull: true,
       defaultValue: DataTypes.NOW,
@@ -73,19 +73,15 @@ const User = sequelize.define(
 );
 
 User.associate = (models) => {
-  // Post relationship
-  // User.hasMany(models.Post, {
-  //   foreignKey: "user_id",
-  //   as: "posts",
-  // });
+
  User.hasMany(models.Chat, {
     foreignKey: "sender_id",
-    as: "sender",   // phải trùng với alias trong Chat.belongsTo
+    as: "sender",   
   });
 
   User.hasMany(models.Chat, {
     foreignKey: "receiver_id",
-    as: "receiver",  // phải trùng với alias trong Chat.belongsTo
+    as: "receiver",  
   });
 };
 

@@ -13,7 +13,7 @@ const Chat = sequelize.define(
       type: DataTypes.TEXT("long"),
       allowNull: false,
     },
-    send_at: {
+    sent_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
