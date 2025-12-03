@@ -76,11 +76,21 @@ module.exports.login = async (req, res) => {
 const token = user.token;
 res.cookie("token", token );
 
-   res.json({
-    code: 200,
-    message: "Đăng nhập thành công",
-    token: user.token
-  });
+  res.json({
+  code: 200,
+  message: "Đăng nhập thành công",
+  token: user.token,
+ user: {
+    user_id: user.user_id,
+    full_name: user.full_name,
+    email: user.email,
+    address: user.address,
+    phone: user.phone,
+    role: user.role,
+    status: user.status
+  }
+});
+
 };
 // PUT /api/v1/user/logout
 module.exports.logout = async (req, res) => {
@@ -101,22 +111,7 @@ module.exports.logout = async (req, res) => {
     });
   }
 };
-// module.exports.forgotPassword = async (req, res) => {
-//   const email = req.body.email;
-//    const user = await User.findOne({
-//     where: {
-//       email: email,
-//       deleted: "false"
-//     }
-//   });
-//   if( !user ){
-//    res.json({
-//     code:400,
-//     message:"Email không tồn tại"
-//    });
-//    return;
-//   }
-// };
+
 // GET /api/v1/user/profile
 module.exports.getProfile = async (req, res) => {
   try {

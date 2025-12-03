@@ -2,11 +2,13 @@ const User = require("../models/user.model.js");
 
 module.exports = async (req, res, next) => {
   try {
-    let token = req.cookies.token;
+   const token =req.cookies?.token ||req.headers["auth-token"] ||
+    req.headers.authorization?.replace("Bearer ", "");
+
     if (!token) {
       return res.status(401).json({
         code: 401,
-        message: "Bạn phải đăng nhập trước!"
+        message: "bạn chưa đăng nhập"
       });
     }
     const user = await User.findOne({
@@ -19,10 +21,9 @@ module.exports = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({
         code: 401,
-        message: "Token không hợp lệ!"
+        message: "Token không hợp lệ"
       });
     }
-
     req.user = user;
 
     next();
