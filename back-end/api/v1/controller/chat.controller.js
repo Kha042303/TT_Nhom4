@@ -9,7 +9,7 @@ module.exports.sendMessage = async (req, res) => {
     if (!receiver_id) {
       return res.json({
         code: 400,
-        message: "Thiếu receiver_id"
+        message: "thiếu thông tin người nhận"
       });
     }
 
@@ -28,7 +28,7 @@ module.exports.sendMessage = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       code: 500,
-      message: "Lỗi khi gửi tin nhắn",
+      message: "Lỗi",
       error: error.message
     });
   }
@@ -62,7 +62,7 @@ module.exports.getMessages = async (req, res) => {
     console.log(error);
     return res.status(500).json({
       code: 500,
-      message: "Lỗi khi lấy tin nhắn",
+      message: "Lỗi",
       error: error.message
     });
   }

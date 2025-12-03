@@ -1,6 +1,8 @@
 const md5 = require("md5");
 const User = require("../models/user.model.js");
 const  generateHelpers = require("../../../helpers/generate.js");
+const { Op } = require("sequelize");
+
 // POST /api/v1/user/register
 module.exports.register = async (req, res) => {
   try {
@@ -206,6 +208,8 @@ module.exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({
       where: {
+        user_id: { [Op.ne]: req.user.user_id },
+        role: { [Op.ne]: "admin" },
         deleted: "false"
       },
       attributes: [

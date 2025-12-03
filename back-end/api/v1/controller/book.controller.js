@@ -17,6 +17,8 @@ module.exports.index = async (req, res) => {
 
     if (req.query.keyword) {
       find.where.title = { [Op.regexp]: objectSearch.keyword }; 
+      find.where.author = { [Op.regexp]: objectSearch.keyword };
+
     }
     let initPagination = {
       currentPage: 1,
@@ -26,17 +28,15 @@ module.exports.index = async (req, res) => {
     const countBooks = await books.count({ where: find.where });
 
     const pagination = paginationHelper(initPagination, req.query, countBooks);
-
-    if (req.query.sortKey && req.query.sortValue) {
-      find.order.push([req.query.sortKey, req.query.sortValue]);
-    }
     
     const Book = await books.findAll({
       ...find,
       limit: pagination.limitItems,
       offset: pagination.skip
     });
-
+ if (req.query.sortKey && req.query.sortValue) {
+      find.order.push([req.query.sortKey, req.query.sortValue]);
+    }
     const data = Book.map(item => {
   return {
     ...item.dataValues,
@@ -130,6 +130,7 @@ module.exports.changeStatus = async (req, res) => {
 module.exports.create = async (req, res) => {
   try {
     const body = req.body;
+    const userId = req.user.user_id;
     const allowedStatus = ["active", "inactive"];
     if (body.status && !allowedStatus.includes(body.status)) {
       return res.status(400).json({
@@ -141,6 +142,7 @@ module.exports.create = async (req, res) => {
       const imagePaths = req.files.map((file) => `/images/books/${file.filename}`);
       body.image_url = JSON.stringify(imagePaths);
     }
+    body.user_id = userId;
     const data = await books.create(body);
 
     return res.json({
@@ -148,7 +150,6 @@ module.exports.create = async (req, res) => {
       message: "Tạo thành công",
       data: data
     });
-
   } catch (error) {
     return res.status(500).json({
       code: 500,
@@ -232,3 +233,37 @@ module.exports.delete = async (req, res) => {
     });
   }
 };
+// GET /api/v1/book/my-books
+module.exports.myBooks = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+
+    const userBooks = await books.findAll({
+      where: {
+        user_id: userId,
+        deleted: "false"   
+      }
+    });
+
+    if (userBooks.length === 0) {
+      return res.status(404).json({
+        code: 404,
+        message: "Người dùng không có sách nào"
+      });
+    }
+
+    res.json({
+      code: 200,
+      message: "Lấy sách của người dùng thành công",
+      data: userBooks
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: "Lỗi",
+      error: error.message
+    });
+  }
+};
+

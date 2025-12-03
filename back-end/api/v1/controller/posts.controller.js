@@ -27,7 +27,9 @@ module.exports.index = async (req, res) => {
     );
     find.limit = pagination.limitItems;
     find.offset = pagination.skip;
+    
     const posts = await Post.findAll(find);
+
     const data = posts.map(item => ({
       ...item.dataValues,
       images: item.images ? JSON.parse(item.images) : []
@@ -313,6 +315,12 @@ module.exports.myPosts = async (req, res) => {
       },
       order: [["created_at", "DESC"]]
     });
+    if(!posts){
+      return res.status(404).json({
+        code:404,
+        message:"Người dùng không có bài viết nào"
+      });
+    }
 
     return res.json({
       code: 200,
