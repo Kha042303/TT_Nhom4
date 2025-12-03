@@ -17,7 +17,12 @@ module.exports = async (req, res, next) => {
         deleted: "false"
       }
     });
-
+    if(user.status !=="active"){
+      return res.status(403).json({
+        code:403,
+        message:"Tài khoản của bạn đã bị khóa"
+      });
+    }
     if (!user) {
       return res.status(401).json({
         code: 401,
