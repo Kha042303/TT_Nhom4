@@ -1,8 +1,10 @@
 const md5 = require("md5");
 const User = require("../models/user.model.js");
+const db = require("../models");
 const  generateHelpers = require("../../../helpers/generate.js");
 const { Op } = require("sequelize");
-
+const Role = db.Role;
+const UserRole = db.UserRole;
 // POST /api/v1/user/register
 module.exports.register = async (req, res) => {
   try {
@@ -27,6 +29,14 @@ module.exports.register = async (req, res) => {
       email: req.body.email,
       password: req.body.password,
       token: generateHelpers.generateRandomString(30),
+    });
+    const buyerRole = await Role.findOne({ where: { role_name: "buyer" } });
+    await UserRole.create({
+      user_id: newUser.user_id,
+      role_id: buyerRole.role_id,
+      start_at: new Date(),
+      expire_at: null,
+      is_active: true
     });
 
     return res.json({
@@ -277,38 +287,4 @@ module.exports.editProfile = async (req, res) => {
     });
   }
 };
- // PATCH /api/v1/user/change-status/:id
-module.exports.changeStatus = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const status = req.body.status;
-    const allowedStatus = ["active", "inactive","banned"];
-    if (!allowedStatus.includes(status)) {
-      return res.status(400).json({
-        code: 400,
-        message: " Chỉ được dùng active, inactive, banned"
-      });
-    }
-    const result = await User.update(
-      { status: status },
-      { where: { user_id: id } }
-    );
 
-    if (result[0] === 0) {
-      return res.status(404).json({
-        code: 400,
-        message: "Không tìm thấy người dùng"
-      });
-    } 
-    res.json({
-      code: 200,
-      message: "Cập nhật trạng thái thành công"
-    });
-  } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: "Lỗi ",
-      error: error.message
-    });
-  }
-};
