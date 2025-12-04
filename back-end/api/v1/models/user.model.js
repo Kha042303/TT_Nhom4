@@ -83,6 +83,11 @@ User.associate = (models) => {
     foreignKey: "receiver_id",
     as: "receiver",  
   });
+
+   User.hasMany(models.UserRole, {
+    foreignKey: "user_id",
+    as: "user_roles",
+  });
 };
 
 module.exports = User;

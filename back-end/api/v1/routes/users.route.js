@@ -16,8 +16,6 @@ router.get("/profile", userController.getProfile);
 router.get("/profileid/:id",auth ,userController.getProfileid);
 // Sửa thông tin người dùng hiện tại
 router.patch("/profile/editmyprofile", auth, userController.editProfile);
-// Đổi trạng thái người dùng(khóa/mở khóa)
-router.patch("/change-status/:id",auth,checkRole("admin"), userController.changeStatus);
 // Lấy danh sách tất cả người dùng
 router.get("/list",auth,userController.getAllUsers);
 module.exports = router;
