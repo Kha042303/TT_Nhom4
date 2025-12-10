@@ -55,11 +55,6 @@ const User = sequelize.define(
       defaultValue: "active",
     },
 
-    token: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
     deleted: {
       type: DataTypes.ENUM("true", "false"),
       allowNull: false,

@@ -10,7 +10,18 @@ const routerVersion1 = require("./api/v1/routes/index.route");
 const setupSocket = require("./socket.io"); 
 
 const app = express();
-const PORT = process.env.PORT ;
+const PORT = process.env.PORT;
+
+// ===================== DEBUG SECRET ===================== //
+
+console.log("ACCESS_TOKEN_SECRET =", process.env.ACCESS_TOKEN_SECRET);
+
+if (!process.env.ACCESS_TOKEN_SECRET) {
+  console.error("❌ Lỗi: ACCESS_TOKEN_SECRET không có giá trị. Hãy thêm vào file .env");
+  // KHÔNG exit(), chỉ cảnh báo → đúng yêu cầu bạn
+}
+
+// ======================================================== //
 
 app.use(cors());
 app.use(cookieParser());
