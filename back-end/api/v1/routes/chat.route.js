@@ -9,5 +9,4 @@ router.post("/send", authMiddleware, chatController.sendMessage);
 
 // lấy tin nhắn giữa người dùng hiện tại và người dùng khác
 router.get("/:receiverId", authMiddleware, chatController.getMessages);
-// 
 module.exports = router;

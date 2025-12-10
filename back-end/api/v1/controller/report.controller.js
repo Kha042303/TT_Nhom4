@@ -91,6 +91,7 @@ module.exports.create = async (req, res) => {
   try {
     const body = req.body;
 
+    // danh sách loại hợp lệ
     const allowedType = ["post", "user", "book", "chat"];
     if (!allowedType.includes(body.report_type)) {
       return res.status(400).json({
@@ -99,7 +100,13 @@ module.exports.create = async (req, res) => {
       });
     }
 
-    const report = await Report.create(body);
+    // FIX QUAN TRỌNG: luôn lấy user_id từ token
+    const userId = req.user.user_id;
+
+    const report = await Report.create({
+      ...body,
+      user_id: userId // bắt buộc phải gán
+    });
 
     return res.json({
       code: 200,
@@ -115,6 +122,7 @@ module.exports.create = async (req, res) => {
     });
   }
 };
+
 // PATCH /api/v1/report/edit/:id
 module.exports.edit = async (req, res) => {
   try {

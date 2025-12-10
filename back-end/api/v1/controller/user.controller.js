@@ -1,219 +1,228 @@
-const md5 = require("md5");
+// @ts-nocheck
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+
 const User = require("../models/user.model.js");
+const Session = require("../models/session.model.js");
 const db = require("../models");
-const  generateHelpers = require("../../../helpers/generate.js");
-const { Op } = require("sequelize");
 const Role = db.Role;
 const UserRole = db.UserRole;
-// POST /api/v1/user/register
+const { Op } = require("sequelize");
+
+// TTL
+const ACCESS_TOKEN_TTL = "30m";
+const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
+
+// =================== REGISTER ===================
 module.exports.register = async (req, res) => {
   try {
-    req.body.password = md5(req.body.password);
+    const { full_name, email, password } = req.body;
+
+    if (!full_name || !email || !password)
+      return res.json({ code: 400, message: "Thiếu thông tin" });
 
     const existUser = await User.findOne({
-      where: {
-        email: req.body.email,
-        deleted: "false"
+      where: { email, deleted: "false" }
+    });
+
+    if (existUser)
+      return res.json({ code: 400, message: "Email đã tồn tại" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await User.create({
+      full_name,
+      email,
+      password: hashedPassword,
+      role: "buyer",
+      status: "active"
+    });
+
+    const buyerRole = await Role.findOne({ where: { role_name: "buyer" } });
+
+    await UserRole.create({
+      user_id: newUser.user_id,
+      role_id: buyerRole.role_id
+    });
+
+    return res.json({ code: 200, message: "Đăng ký thành công" });
+
+  } catch (error) {
+    console.log("REGISTER ERROR:", error);
+    return res.json({ code: 500, message: "Lỗi server" });
+  }
+};
+
+// =================== LOGIN ===================
+module.exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password)
+      return res.json({ code: 400, message: "Thiếu email hoặc password" });
+
+    const user = await User.findOne({
+      where: { email, deleted: "false" }
+    });
+
+    if (!user)
+      return res.json({ code: 400, message: "Email không tồn tại" });
+
+    const correct = await bcrypt.compare(password, user.password);
+    if (!correct)
+      return res.json({ code: 400, message: "Mật khẩu sai" });
+
+    // ACCESS TOKEN
+    const accessToken = jwt.sign(
+      { user_id: user.user_id },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: ACCESS_TOKEN_TTL }
+    );
+
+    // REFRESH TOKEN
+    const refreshToken = crypto.randomBytes(64).toString("hex");
+    const hashedRT = await bcrypt.hash(refreshToken, 10);
+
+    await Session.create({
+      user_id: user.user_id,
+      refresh_token: hashedRT,
+      expires_at: new Date(Date.now() + REFRESH_TOKEN_TTL)
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: REFRESH_TOKEN_TTL
+    });
+
+    return res.json({
+      code: 200,
+      message: "Đăng nhập thành công",
+      accessToken,
+      user: {
+        user_id: user.user_id,
+        full_name: user.full_name,
+        email: user.email,
+        role: user.role
       }
     });
 
-    if (existUser) {
-      return res.json({
-        code: 400,
-        message: "Email đã tồn tại"
-      });
-    }
-
-    const newUser = await User.create({
-      full_name: req.body.full_name,
-      email: req.body.email,
-      password: req.body.password,
-      token: generateHelpers.generateRandomString(30),
-    });
-    const buyerRole = await Role.findOne({ where: { role_name: "buyer" } });
-    await UserRole.create({
-      user_id: newUser.user_id,
-      role_id: buyerRole.role_id,
-      start_at: new Date(),
-      expire_at: null,
-      is_active: true
-    });
-
-    return res.json({
-      code: 200,
-      message: "Đăng ký thành công",
-      token: newUser.token
-    });
-
   } catch (error) {
-    return res.status(500).json({
-      code: 500,
-      message: "Lỗi khi đăng ký",
-      error: error.message
-    });
+    console.log("LOGIN ERROR:", error);
+    return res.json({ code: 500, message: "Lỗi server", error: error.message });
   }
 };
-// POST /api/v1/user/login
-module.exports.login = async (req, res) => {
- const email = req.body.email;
- const password=req.body.password;
 
- if( !email || !password ){
-   res.json({
-    code:400,
-    message:"Thiếu email hoặc password"
-   });
-   return;
- }
- const user = await User.findOne({
-    where: {
-      email: email,
-      deleted: "false"
-    }
-  });
-  if( !user ){
-   res.json({
-    code:400,
-    message:"Email không tồn tại"
-   });
-   return;
-  }
-  if( user.password !== md5(password) ){
-   res.json({
-    code:400,
-    message:"Mật khẩu không đúng"
-   });
-   return;
-  }
-const token = user.token;
-res.cookie("token", token );
-
-  res.json({
-  code: 200,
-  message: "Đăng nhập thành công",
-  token: user.token,
- user: {
-    user_id: user.user_id,
-    full_name: user.full_name,
-    email: user.email,
-    address: user.address,
-    phone: user.phone,
-    role: user.role,
-    status: user.status
-  }
-});
-
-};
-// PUT /api/v1/user/logout
+// =================== LOGOUT ===================
 module.exports.logout = async (req, res) => {
-
   try {
     const token = req.cookies?.refreshToken;
-    res.clearCookie("token");
-    res.json({
-      code: 200,
-      message: "Đăng xuất thành công"
-    });
-  }
-  catch (error) {
-    return res.status(500).json({
-      code: 500,
-      message: "Lỗi khi đăng xuất",
-      error: error.message
-    });
+
+    if (token) {
+      const sessions = await Session.findAll();
+
+      for (const s of sessions) {
+        const match = await bcrypt.compare(token, s.refresh_token);
+
+        if (match) {
+          await Session.destroy({ where: { session_id: s.session_id } });
+        }
+      }
+
+      res.clearCookie("refreshToken");
+    }
+
+    return res.json({ code: 200, message: "Đăng xuất thành công" });
+
+  } catch (error) {
+    console.log("LOGOUT ERROR:", error);
+    return res.json({ code: 500, message: "Lỗi server" });
   }
 };
 
-// GET /api/v1/user/profile
+// =================== REFRESH TOKEN ===================
+module.exports.refreshToken = async (req, res) => {
+  try {
+    const token = req.cookies?.refreshToken;
+    if (!token)
+      return res.json({ message: "Không có token" });
+
+    const sessions = await Session.findAll();
+    let dbSession = null;
+
+    for (const s of sessions) {
+      const match = await bcrypt.compare(token, s.refresh_token);
+      if (match) {
+        dbSession = s;
+        break;
+      }
+    }
+
+    if (!dbSession)
+      return res.json({ message: "Token sai" });
+
+    if (dbSession.expires_at < new Date())
+      return res.json({ message: "Token hết hạn" });
+
+    const accessToken = jwt.sign(
+      { user_id: dbSession.user_id },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: ACCESS_TOKEN_TTL }
+    );
+
+    return res.json({ accessToken });
+
+  } catch (error) {
+    console.log("REFRESH TOKEN ERROR:", error);
+    return res.json({ code: 500, message: "Lỗi server" });
+  }
+};
+
+// =================== GET PROFILE ===================
 module.exports.getProfile = async (req, res) => {
   try {
-    const token = req.cookies.token;
-    
-    if (!token) {
-      return res.status(400).json({
-        code: 400,
-        message: "Không tìm thấy token trong cookie"
-      });
-    }
-    const user = await User.findOne({
-      where: {
-        token: token,
-        deleted: "false"
-      },
-      attributes: [
-        "user_id",
-        "full_name",
-        "email",
-        "address",
-        "phone",
-        "role",
-        "created_at",
-        "status"
-      ]
-    });
+    const userId = req.user.user_id;
 
-    if (!user) {
-      return res.status(404).json({
-        code: 404,
-        message: "Không tìm thấy user với token này"
-      });
-    }
+    const user = await User.findOne({
+      where: { user_id: userId, deleted: "false" }
+    });
 
     return res.json({
       code: 200,
-      message: "Lấy thông tin user thành công",
+      message: "Thành công",
       data: user
     });
 
   } catch (error) {
-    return res.status(500).json({
-      code: 500,
-      message: "Lỗi khi lấy thông tin user",
-      error: error.message
-    });
+    console.log("GET PROFILE ERROR:", error);
+    return res.json({ code: 500, message: "Lỗi server" });
   }
 };
-// GET /api/v1/user/profileid/:id
-module.exports.getProfileid = async (req, res) => {
+
+// =================== GET PROFILE BY ID ===================
+module.exports.getProfileById = async (req, res) => {
   try {
     const id = req.params.id;
+
     const user = await User.findOne({
-      where: {
-        user_id: id,
-        deleted: "false"
-      },
-      attributes: [
-        "user_id",  
-        "full_name",
-        "email",
-        "address",
-        "phone",
-        "role",
-        "created_at",
-        "status"
-      ]
+      where: { user_id: id, deleted: "false" }
     });
-    if (!user) {
-     res.status(404).json({
-      code:404,
-      message:"Không tìm thấy user với id này"
-     });
-     return;
-    }
 
     return res.json({
       code: 200,
-      message: "Lấy thông tin user thành công",
+      message: "Thành công",
       data: user
     });
+
   } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: "Lỗi khi lấy thông tin user",
-      error: error.message
-    });
+    console.log("GET PROFILE BY ID ERROR:", error);
+    return res.json({ code: 500, message: "Lỗi server" });
   }
 };
+
+// =================== GET ALL USERS ===================
 module.exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({
@@ -221,70 +230,39 @@ module.exports.getAllUsers = async (req, res) => {
         user_id: { [Op.ne]: req.user.user_id },
         role: { [Op.ne]: "admin" },
         deleted: "false"
-      },
-      attributes: [
-        "user_id",  
-        "full_name",
-        "email",
-        "address",
-        "phone",
-        "role",
-        "created_at",
-        "status"
-      ]
-    }); 
+      }
+    });
+
     return res.json({
       code: 200,
-      message: "Lấy danh sách người dùng thành công",
+      message: "Thành công",
       data: users
     });
+
   } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: "Lỗi khi lấy danh sách người dùng",
-      error: error.message
-    });
+    console.log("GET ALL USERS ERROR:", error);
+    return res.json({ code: 500, message: "Lỗi server" });
   }
 };
-// PATCH /api/v1/user/profile/editmyprofile
+
+// =================== EDIT PROFILE ===================
 module.exports.editProfile = async (req, res) => {
   try {
     const userId = req.user.user_id;
     const { full_name, address, phone } = req.body;
+
     await User.update(
-      {
-        full_name: full_name,
-        address: address,
-        phone: phone
-      },
-      {
-        where: { user_id: userId }
-      }
+      { full_name, address, phone },
+      { where: { user_id: userId } }
     );
-    const updatedUser = await User.findOne({
-      where: { user_id: userId },
-      attributes: [
-        "user_id",
-        "full_name",
-        "email",
-        "address",
-        "phone",
-        "role",
-        "created_at",
-        "status"
-      ]
-    });
+
     return res.json({
       code: 200,
-      message: "Cập nhật thông tin cá nhân thành công",
-      data: updatedUser
+      message: "Sửa thành công"
     });
+
   } catch (error) {
-    return res.status(500).json({
-      code: 500,
-      message: "Lỗi khi cập nhật thông tin cá nhân",
-      error: error.message
-    });
+    console.log("EDIT PROFILE ERROR:", error);
+    return res.json({ code: 500, message: "Lỗi server" });
   }
 };
-

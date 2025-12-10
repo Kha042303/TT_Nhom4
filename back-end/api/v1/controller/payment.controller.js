@@ -252,10 +252,7 @@ module.exports.index = async (req, res) => {
   }
 };
 
-
-
   // GET /api/v1/payment/detail/:id
-
 module.exports.detail = async (req, res) => {
   try {
     const id = req.params.id;
@@ -286,8 +283,6 @@ module.exports.detail = async (req, res) => {
     });
   }
 };
-
-
    //PATCH /api/v1/payment/update/:id
 module.exports.update = async (req, res) => {
   try {

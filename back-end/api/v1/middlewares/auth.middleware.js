@@ -1,41 +1,30 @@
-const User = require("../models/user.model.js");
+// @ts-nocheck
+const jwt = require("jsonwebtoken");
 
-module.exports = async (req, res, next) => {
+// Middleware xác thực Access Token
+module.exports = (req, res, next) => {
   try {
-   const token =req.cookies?.token ||req.headers["auth-token"] ||
-    req.headers.authorization?.replace("Bearer ", "");
+    const header = req.headers["authorization"];
+    if (!header)
+      return res.status(401).json({ message: "Thiếu access token" });
 
-    if (!token) {
-      return res.status(401).json({
-        code: 401,
-        message: "bạn chưa đăng nhập"
-      });
-    }
-    const user = await User.findOne({
-      where: {
-        token: token,
-        deleted: "false"
-      }
+    // Lấy token sau "Bearer "
+    const token = header.split(" ")[1];
+    if (!token)
+      return res.status(401).json({ message: "Token không hợp lệ" });
+
+    // Verify token
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+      if (err)
+        return res.status(403).json({ message: "Token hết hạn hoặc sai" });
+
+      // Lưu thông tin user vào req
+      req.user = decoded; // { user_id, role }
+      next();
     });
-    if(user.status !=="active"){
-      return res.status(403).json({
-        code:403,
-        message:"Tài khoản của bạn đã bị khóa"
-      });
-    }
-    if (!user) {
-      return res.status(401).json({
-        code: 401,
-        message: "Token không hợp lệ"
-      });
-    }
-    req.user = user;
-
-    next();
 
   } catch (error) {
     return res.status(500).json({
-      code: 500,
       message: "Lỗi xác thực token",
       error: error.message
     });
