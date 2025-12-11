@@ -20,18 +20,30 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Kiểm tra match password
     if (password !== confirm) {
       alert("Mật khẩu không khớp!");
       return;
     }
 
-    const res = await register({ full_name, email, password });
+    // Kiểm tra đủ mạnh
+    if (password.length < 6) {
+      alert("Mật khẩu phải có ít nhất 6 ký tự!");
+      return;
+    }
 
-    if (res.code === 200) {
-      alert("Đăng ký thành công!");
-      window.location.href = "/signin";
-    } else {
-      alert(res.message || "Lỗi đăng ký");
+    try {
+      const res = await register({ full_name, email, password });
+
+      if (res.code === 200) {
+        alert("Đăng ký thành công!");
+        window.location.href = "/signin";
+      } else {
+        alert(res.message || "Lỗi đăng ký");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi server, vui lòng thử lại sau!");
     }
   };
 
@@ -84,6 +96,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                       onChange={(e) => setPassword(e.target.value)}
                     />
                   </Field>
+
                   <Field>
                     <FieldLabel htmlFor="confirm_password">
                       Xác nhận mật khẩu
@@ -97,6 +110,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                     />
                   </Field>
                 </div>
+
                 <FieldDescription>
                   Mật khẩu phải có ít nhất 6 ký tự.
                 </FieldDescription>
