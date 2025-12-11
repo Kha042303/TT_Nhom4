@@ -1,36 +1,59 @@
-export const API = "http://localhost:3000/api/v1";
+import axios from "axios";
 
-export interface ApiResponse<T = any> {
-  code: number;
-  message: string;
-  data?: T;
-  token?: string;
-  user?: any;  
+const API = axios.create({
+  baseURL: "http://localhost:3000/api/v1",
+  withCredentials: true, // gửi cookie refreshToken
+});
+
+// Gắn accessToken vào header
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem("accessToken");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Tự refresh token khi 401
+API.interceptors.response.use(
+  (res) => res,
+  async (err) => {
+    const original = err.config;
+
+    if (err.response?.status === 401 && !original._retry) {
+      original._retry = true;
+
+      try {
+        const res = await API.post("/user/refresh-token");
+        const newToken = res.data.accessToken;
+
+        localStorage.setItem("accessToken", newToken);
+
+        original.headers.Authorization = `Bearer ${newToken}`;
+        return API(original);
+
+      } catch (refreshErr) {
+        console.log("Refresh lỗi:", refreshErr);
+        localStorage.removeItem("accessToken");
+      }
+    }
+
+    return Promise.reject(err);
+  }
+);
+
+/* ---------------------------
+   🟦 EXPORT HÀM LOGIN & REGISTER
+---------------------------- */
+
+export async function login(data: { email: string; password: string }) {
+  const res = await API.post("/user/login", data);
+  return res.data;
 }
 
-
-export interface AuthPayload {
-  email: string;
-  password: string;
-  full_name?: string;
+export async function register(data: { full_name: string; email: string; password: string }) {
+  const res = await API.post("/user/register", data);
+  return res.data;
 }
 
-export const login = async (data: AuthPayload): Promise<ApiResponse> => {
-  const res = await fetch(`${API}/user/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-
-  return res.json();
-};
-
-export const register = async (data: AuthPayload): Promise<ApiResponse> => {
-  const res = await fetch(`${API}/user/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-
-  return res.json();
-};
+export default API;

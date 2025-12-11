@@ -9,12 +9,9 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import React, { useState } from "react";
-import { login } from "../../api";  
+import { login } from "../../api";
 
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,18 +24,25 @@ export function LoginForm({
       return;
     }
 
-    const res = await login({ email, password });
+    try {
+      const res = await login({ email, password });
 
-  if (res.code === 200) {
+      if (res.code === 200) {
   alert("Đăng nhập thành công!");
 
-  localStorage.setItem("token", String(res.token));
+  // FIX TOKEN KEY
+  localStorage.setItem("token", res.accessToken);
   localStorage.setItem("user", JSON.stringify(res.user));
 
   window.location.href = "/chat";
 }
- else {
-      alert(res.message || "Đăng nhập thất bại!");
+
+      else {
+        alert(res.message || "Đăng nhập thất bại!");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Lỗi hệ thống!");
     }
   };
 
