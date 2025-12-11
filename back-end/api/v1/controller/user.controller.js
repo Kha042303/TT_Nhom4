@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 
 const User = require("../models/user.model.js");
-const Session = require("../models/session.model.js");
+const Session = require("../models/sesion.model.js");
 const db = require("../models");
 const Role = db.Role;
 const UserRole = db.UserRole;
@@ -228,9 +228,24 @@ module.exports.getAllUsers = async (req, res) => {
     const users = await User.findAll({
       where: {
         user_id: { [Op.ne]: req.user.user_id },
-        role: { [Op.ne]: "admin" },
         deleted: "false"
-      }
+      },
+      include: [
+        {
+          model: UserRole,
+          as: "user_roles",
+          where: { is_active: true },
+          include: [
+            {
+              model: Role,
+              as: "role",
+              where: {
+                role_name: { [Op.ne]: "admin" }   // lọc admin TẠI ĐÂY
+              }
+            }
+          ]
+        }
+      ]
     });
 
     return res.json({
@@ -244,6 +259,7 @@ module.exports.getAllUsers = async (req, res) => {
     return res.json({ code: 500, message: "Lỗi server" });
   }
 };
+
 
 // =================== EDIT PROFILE ===================
 module.exports.editProfile = async (req, res) => {
