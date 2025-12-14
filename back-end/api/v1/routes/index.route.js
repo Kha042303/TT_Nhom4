@@ -5,6 +5,9 @@ const Postroute = require("./post.route.js");
 const Chatroute = require("./chat.route.js");
 const Reportroute = require("./report.route.js");
 const paymentroute = require("./payment.route.js");
+const adminRoutes = require("./admin.route");
+
+
 module.exports = (app) => {
   const version = "/api/v1";
   app.use(version + "/book", Bookroute);
@@ -13,4 +16,5 @@ module.exports = (app) => {
   app.use(version + "/chat", Chatroute);
   app.use(version + "/report", Reportroute);
   app.use(version + "/payment", paymentroute);
+  app.use(version + "/admin", adminRoutes);
 };

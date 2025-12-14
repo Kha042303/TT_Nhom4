@@ -10,8 +10,8 @@ const https = require("https");
 function generateOrderId() {
   return "ORDER_" + Date.now();
 }
-   //POST /api/v1/payment/create
-  // Tạo thanh toán MoMo + Lưu FULL payment trước khi thanh toán
+//POST /api/v1/payment/create
+// Tạo thanh toán MoMo + Lưu FULL payment trước khi thanh toán
 
 module.exports.create = async (req, res) => {
   try {

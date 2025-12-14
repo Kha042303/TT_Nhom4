@@ -59,19 +59,38 @@ module.exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password)
+    if (!email || !password) {
       return res.json({ code: 400, message: "Thiếu email hoặc password" });
+    }
 
+    // ✅ Lấy user + user_roles (active) + role
     const user = await User.findOne({
-      where: { email, deleted: "false" }
+      where: { email, deleted: "false" },
+      include: [
+        {
+          model: UserRole,
+          as: "user_roles",
+          required: false,
+          where: { is_active: true },
+          include: [
+            {
+              model: Role,
+              as: "role",
+              attributes: ["role_id", "role_name"]
+            }
+          ]
+        }
+      ]
     });
 
-    if (!user)
+    if (!user) {
       return res.json({ code: 400, message: "Email không tồn tại" });
+    }
 
     const correct = await bcrypt.compare(password, user.password);
-    if (!correct)
+    if (!correct) {
       return res.json({ code: 400, message: "Mật khẩu sai" });
+    }
 
     // ACCESS TOKEN
     const accessToken = jwt.sign(
@@ -90,6 +109,8 @@ module.exports.login = async (req, res) => {
       expires_at: new Date(Date.now() + REFRESH_TOKEN_TTL)
     });
 
+    // ⚠️ Nếu bạn test local HTTP, secure:true sẽ không set cookie.
+    // Giữ nguyên như bạn đang dùng; khi cần test local có thể đổi secure:false.
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
@@ -97,6 +118,7 @@ module.exports.login = async (req, res) => {
       maxAge: REFRESH_TOKEN_TTL
     });
 
+    // ✅ Trả về user kèm role
     return res.json({
       code: 200,
       message: "Đăng nhập thành công",
@@ -105,7 +127,16 @@ module.exports.login = async (req, res) => {
         user_id: user.user_id,
         full_name: user.full_name,
         email: user.email,
-        role: user.role
+        user_roles: (user.user_roles || []).map((ur) => ({
+          id: ur.id,
+          role_id: ur.role_id,
+          is_active: ur.is_active,
+          start_at: ur.start_at,
+          expire_at: ur.expire_at,
+          role: ur.role
+            ? { role_id: ur.role.role_id, role_name: ur.role.role_name }
+            : null
+        }))
       }
     });
 
@@ -114,6 +145,7 @@ module.exports.login = async (req, res) => {
     return res.json({ code: 500, message: "Lỗi server", error: error.message });
   }
 };
+
 
 // =================== LOGOUT ===================
 module.exports.logout = async (req, res) => {
