@@ -4,7 +4,7 @@ import {
   deleteBook,
   getAdminBooks,
   getBookDetail,
-} from "../api/admin.books";
+} from "../../api/admin.books";
 
 type Book = {
   book_id: number;
@@ -16,8 +16,8 @@ type Book = {
   stock?: number;
   category?: string;
   description?: string;
-  image_url?: string[];
-  status?: string | null;
+  image_url?: string[]; // backend trả array theo ảnh bạn gửi
+  status?: string | null; // có thể null
   created_at?: string;
 };
 
@@ -28,9 +28,7 @@ export default function AdminBooks() {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [totalPage, setTotalPage] = useState(1);
-
-  // ⚠️ nếu BE đang limitItems=8 thì nên để LIMIT=8 cho khớp
-  const LIMIT = 8;
+  const LIMIT = 10;
 
   // modal detail
   const [openDetail, setOpenDetail] = useState(false);
@@ -44,20 +42,22 @@ export default function AdminBooks() {
     try {
       const res = await getAdminBooks(p, LIMIT, q);
 
+      // backend bạn hiện thấy trả: { data: [...] }
       const list: Book[] = res.data?.data || [];
+
       setBooks(list);
 
-      // ✅ paginationHelper của bạn trả camelCase: currentPage, totalPage
-      const pg = res.data?.pagination;
-      if (pg?.totalPage) {
-        setPage(pg.currentPage || p);
-        setTotalPage(pg.totalPage || 1);
-      } else {
-        setPage(p);
-        setTotalPage(1);
-      }
+      // nếu backend có pagination kiểu users: res.data.pagination
+   const pg = res.data?.pagination;
+
+if (pg?.totalPage) {
+  setPage(pg.currentPage || p);
+  setTotalPage(pg.totalPage || 1);
+} else {
+  setPage(p);
+  setTotalPage(1);
+}
     } catch (e) {
-      console.error(e);
       alert("Không thể tải danh sách sách!");
     } finally {
       setLoading(false);
@@ -80,10 +80,10 @@ export default function AdminBooks() {
     setDetailLoading(true);
     try {
       const res = await getBookDetail(id);
+      // tùy backend: { data: {...} } hoặc { book: {...} }
       const d = res.data?.data || res.data?.book || res.data;
       setDetail(d);
     } catch (e) {
-      console.error(e);
       alert("Không thể tải chi tiết sách!");
       setOpenDetail(false);
     } finally {
@@ -91,21 +91,21 @@ export default function AdminBooks() {
     }
   };
 
-  const handleChangeStatus = async (b: Book) => {
-    if (!confirm(`Đổi trạng thái sách ID=${b.book_id}?`)) return;
+const handleChangeStatus = async (b: Book) => {
+  if (!confirm(`Đổi trạng thái sách ID=${b.book_id}?`)) return;
 
-    // ✅ toggle status
-    const nextStatus =
-      (b.status ?? "active") === "active" ? "inactive" : "active";
+  // ✅ toggle status
+  const nextStatus =
+    (b.status ?? "active") === "active" ? "inactive" : "active";
 
-    try {
-      await changeBookStatus(b.book_id, nextStatus);
-      fetchBooks(page);
-    } catch (e) {
-      console.error(e);
-      alert("Đổi trạng thái thất bại!");
-    }
-  };
+  try {
+    await changeBookStatus(b.book_id, nextStatus);
+    fetchBooks(page);
+  } catch (e) {
+    alert("Đổi trạng thái thất bại!");
+  }
+};
+
 
   const handleDelete = async (id: number) => {
     if (!confirm(`Xóa sách ID=${id}?`)) return;
@@ -113,7 +113,6 @@ export default function AdminBooks() {
       await deleteBook(id);
       fetchBooks(page);
     } catch (e) {
-      console.error(e);
       alert("Xóa thất bại!");
     }
   };
@@ -135,6 +134,7 @@ export default function AdminBooks() {
   const firstImage = (b: Book) => {
     const img = b.image_url?.[0];
     if (!img) return null;
+    // backend trả "/images/books/....png" → ghép host
     return `http://localhost:3000${img}`;
   };
 
