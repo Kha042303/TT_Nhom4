@@ -12,7 +12,6 @@ import React, { useState } from "react";
 import { login } from "../../api";
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -28,16 +27,24 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
       const res = await login({ email, password });
 
       if (res.code === 200) {
-  alert("Đăng nhập thành công!");
+        alert("Đăng nhập thành công!");
 
-  // FIX TOKEN KEY
-  localStorage.setItem("token", res.accessToken);
-  localStorage.setItem("user", JSON.stringify(res.user));
+        // ✅ FIX: dùng đúng key accessToken
+        localStorage.setItem("accessToken", res.accessToken);
+        localStorage.setItem("user", JSON.stringify(res.user));
 
-  window.location.href = "/chat";
-}
+        // ✅ Check role admin (role_id = 3)
+        const isAdmin = res.user?.user_roles?.some(
+          (ur: any) => ur.role_id === 3
+        );
 
-      else {
+        // ✅ Redirect theo role
+        if (isAdmin) {
+          window.location.href = "/admin";
+        } else {
+          window.location.href = "/";
+        }
+      } else {
         alert(res.message || "Đăng nhập thất bại!");
       }
     } catch (error) {
@@ -50,11 +57,12 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0">
         <CardContent className="grid p-0 md:grid-cols-2">
-
           <form className="p-6 md:p-8" onSubmit={handleSubmit}>
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold text-blue-600">Chào mừng quay lại</h1>
+                <h1 className="text-2xl font-bold text-blue-600">
+                  Chào mừng quay lại
+                </h1>
                 <p className="text-muted-foreground text-balance">
                   Đăng nhập vào tài khoản của bạn
                 </p>
@@ -110,7 +118,6 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
               className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
             />
           </div>
-
         </CardContent>
       </Card>
 
