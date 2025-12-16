@@ -41,7 +41,9 @@ const books = sequelize.define(
       type: DataTypes.TEXT("long"),
     },
     status: {
-      type: DataTypes.STRING(20),
+      type: DataTypes.ENUM("active", "inactive"),
+      allowNull: false,
+      defaultValue: "active",
     },
     deleted: {
       type: DataTypes.ENUM("true", "false"),

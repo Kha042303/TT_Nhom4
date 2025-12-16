@@ -1,38 +1,63 @@
-const db = require("../models");
-const User = db.User;
+const { User, UserRole, Role } = require("../models");
 
 // GET /admin/users?page=&limit=
 module.exports.getAdminUsers = async (req, res) => {
   try {
     let { page = 1, limit = 10 } = req.query;
-
     page = parseInt(page);
     limit = parseInt(limit);
     const offset = (page - 1) * limit;
 
-    const { rows, count } = await User.findAndCountAll({
+    const { rows } = await User.findAndCountAll({
       where: { deleted: "false" },
       attributes: ["user_id", "full_name", "email", "created_at", "status"],
+      include: [
+        {
+          model: UserRole,
+          as: "user_roles",
+          required: false,
+          where: { is_active: true },
+          include: [
+            {
+              model: Role,
+              as: "role",
+              attributes: ["role_id", "role_name"],
+            },
+          ],
+        },
+      ],
+      distinct: true,
       order: [["created_at", "DESC"]],
       limit,
       offset,
     });
 
+    // ❌ loại admin bằng JS (AN TOÀN)
+    const filtered = rows.filter(
+      (u) =>
+        !u.user_roles?.some(
+          (ur) => ur.role?.role_name === "admin"
+        )
+    );
+
     return res.json({
       code: 200,
-      data: rows,
+      data: filtered,
       pagination: {
         current_page: page,
-        total_pages: Math.ceil(count / limit) || 1,
-        total_records: count,
+        total_pages: 1,
+        total_records: filtered.length,
       },
     });
   } catch (error) {
-    console.log("GET ADMIN USERS ERROR:", error);
-    return res.status(500).json({ code: 500, message: "Lỗi server" });
+    console.error("GET ADMIN USERS ERROR:", error);
+    return res.status(500).json({
+      code: 500,
+      message: "Lỗi server",
+      error: error.message,
+    });
   }
 };
-
 // PATCH /admin/users/:id/block  body: { status: 'active'|'inactive'|'banned' }
 module.exports.toggleUserBlock = async (req, res) => {
   try {

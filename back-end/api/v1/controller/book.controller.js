@@ -8,49 +8,67 @@ module.exports.index = async (req, res) => {
   try {
     const find = {
       where: { deleted: "false" },
-      order: []
+   order: [["book_id", "DESC"]],
+
     };
+
+    // filter status
     if (req.query.status) {
       find.where.status = req.query.status;
     }
-    let objectSearch = searchHelper(req.query);
 
+    // search
     if (req.query.keyword) {
-      find.where.title = { [Op.regexp]: objectSearch.keyword }; 
-      find.where.author = { [Op.regexp]: objectSearch.keyword };
-
+      const objectSearch = searchHelper(req.query);
+      find.where[Op.or] = [
+        { title: { [Op.regexp]: objectSearch.keyword } },
+        { author: { [Op.regexp]: objectSearch.keyword } },
+      ];
     }
-    let initPagination = {
+
+    // pagination
+    const initPagination = {
       currentPage: 1,
       limitItems: 8,
     };
 
     const countBooks = await books.count({ where: find.where });
+    const pagination = paginationHelper(
+      initPagination,
+      req.query,
+      countBooks
+    );
 
-    const pagination = paginationHelper(initPagination, req.query, countBooks);
-    
-    const Book = await books.findAll({
-      ...find,
-      limit: pagination.limitItems,
-      offset: pagination.skip
-    });
- if (req.query.sortKey && req.query.sortValue) {
-      find.order.push([req.query.sortKey, req.query.sortValue]);
+    find.limit = pagination.limitItems;
+    find.offset = pagination.skip;
+
+    // sort
+    if (req.query.sortKey && req.query.sortValue) {
+      find.order = [[req.query.sortKey, req.query.sortValue]];
     }
-    const data = Book.map(item => {
-  return {
-    ...item.dataValues,
-    image_url: item.image_url ? JSON.parse(item.image_url) : []
-  };
-});
 
-res.json({ data });
+    const list = await books.findAll(find);
 
+    const data = list.map((item) => ({
+      ...item.dataValues,
+      image_url: item.image_url ? JSON.parse(item.image_url) : [],
+    }));
+
+    // ✅ QUAN TRỌNG NHẤT
+    return res.json({
+      code: 200,
+      data,
+      pagination,
+    });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: err.message });
+    console.log("GET BOOKS ERROR:", err);
+    return res.status(500).json({
+      code: 500,
+      message: err.message,
+    });
   }
 };
+
 // GET /api/v1/book/detail/:id
 module.exports.detail = async (req, res) => {
   try {
@@ -91,41 +109,57 @@ module.exports.detail = async (req, res) => {
 module.exports.changeStatus = async (req, res) => {
   try {
     const id = req.params.id;
-    const status = req.body.status; 
+    let { status } = req.body; // có thể undefined
 
     const allowedStatus = ["active", "inactive"];
 
+    // ✅ nếu client KHÔNG gửi status -> tự toggle
+    if (!status) {
+      const book = await books.findOne({ where: { book_id: id } });
+      if (!book) {
+        return res.status(404).json({
+          code: 404,
+          message: "Không tìm thấy sách",
+        });
+      }
+
+      status = book.status === "active" ? "inactive" : "active";
+    }
+
+    // ✅ validate
     if (!allowedStatus.includes(status)) {
       return res.status(400).json({
         code: 400,
-        message: " Chỉ được dùngactive, inactive"
+        message: "Chỉ được dùng active hoặc inactive",
       });
     }
 
     const result = await books.update(
-      { status: status },
+      { status },
       { where: { book_id: id } }
     );
 
     if (result[0] === 0) {
       return res.status(404).json({
-        code: 400,
-        message: "Không tìm thấy sách"
+        code: 404,
+        message: "Không tìm thấy sách",
       });
     }
-    res.json({
-      code: 200,
-      message: "Cập nhật trạng thái thành công"
-    });
 
+    return res.json({
+      code: 200,
+      message: "Cập nhật trạng thái thành công",
+      data: { book_id: Number(id), status },
+    });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       code: 500,
-      message: "Lỗi ",
-      error: error.message
+      message: "Lỗi",
+      error: error.message,
     });
   }
 };
+
 // [POST] /api/v1/book/create
 module.exports.create = async (req, res) => {
   try {
