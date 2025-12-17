@@ -12,6 +12,9 @@ import AdminLayout from "./pages/admin/AdminLayout.tsx";
 
 import AdminGuard from "./components/AdminGuard";
 import AdminBooks from "./pages/admin/Books";
+import AdminPosts from "./pages/admin/Posts.tsx";
+import AdminPayments from "./pages/admin/Payments.tsx";
+import AdminReports from "./pages/admin/Reports.tsx";
 function App() {
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const token = localStorage.getItem("accessToken") || "";
@@ -42,11 +45,9 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="books" element={<AdminBooks />} />
-            <Route path="books" element={<div>Books</div>} />
-            <Route path="posts" element={<div>Posts</div>} />
-            <Route path="payments" element={<div>Payments</div>} />
-            <Route path="reports" element={<div>Reports</div>} />
-            <Route path="chats" element={<div>Chats</div>} />
+            <Route path="posts" element={<AdminPosts />} />
+             <Route path="payments" element={<AdminPayments />} />
+         <Route path="reports" element={<AdminReports />} />
           </Route>
         </Routes>
       </BrowserRouter>
