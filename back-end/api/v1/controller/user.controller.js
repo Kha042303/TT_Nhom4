@@ -167,21 +167,7 @@ module.exports.login = async (req, res) => {
       refresh_token: hashedRT,
       expires_at: new Date(Date.now() + REFRESH_TOKEN_TTL),
     });
-if (user.status === "banned") {
-  return res.json({
-    code: 403,
-    message: "Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên."
-  });
-}
 
-if (user.status === "inactive") {
-  return res.json({
-    code: 403,
-    message: "Tài khoản đang bị tạm ngưng."
-  });
-}
-    // ⚠️ Nếu bạn test local HTTP, secure:true sẽ không set cookie.
-    // Giữ nguyên như bạn đang dùng; khi cần test local có thể đổi secure:false.
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
