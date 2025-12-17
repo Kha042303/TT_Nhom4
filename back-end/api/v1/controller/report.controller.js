@@ -3,211 +3,207 @@ const Report = require("../models/report.model.js");
 const paginationHelper = require("../../../helpers/pagination");
 const searchHelper = require("../../../helpers/Search");
 
-// GET /api/v1/report
+const ALLOWED_TYPES = ["post", "user", "book", "chat"];
+
+// GET /api/v1/report?report_type=&user_id=&target_id=&keyword=&page=&limit=
 module.exports.index = async (req, res) => {
   try {
-    const find = {
-      where: {},
-      order: [["generated_at", "DESC"]]
-    };
+    const where = {};
 
-    // Lọc theo loại report
     if (req.query.report_type) {
-      find.where.report_type = req.query.report_type;
+      if (!ALLOWED_TYPES.includes(req.query.report_type)) {
+        return res.status(400).json({
+          code: 400,
+          message: "report_type chỉ được: post, user, book, chat",
+        });
+      }
+      where.report_type = req.query.report_type;
     }
 
-    // Lọc theo user báo cáo
     if (req.query.user_id) {
-      find.where.user_id = req.query.user_id;
+      const uid = parseInt(req.query.user_id, 10);
+      if (!Number.isFinite(uid)) {
+        return res.status(400).json({ code: 400, message: "user_id không hợp lệ" });
+      }
+      where.user_id = uid;
     }
 
-    // Tìm kiếm nội dung
-    let objectSearch = searchHelper(req.query);
-    if (req.query.keyword) {
-      find.where.content = { [Op.regexp]: objectSearch.keyword };
+    if (req.query.target_id) {
+      const tid = parseInt(req.query.target_id, 10);
+      if (!Number.isFinite(tid)) {
+        return res.status(400).json({ code: 400, message: "target_id không hợp lệ" });
+      }
+      where.target_id = tid;
     }
 
-    // Phân trang
-    let initPagination = {
-      currentPage: 1,
-      limitItems: 10
-    };
+    // search keyword trên content + notes
+    const objectSearch = searchHelper(req.query);
+    if (objectSearch.keyword) {
+      const kw = objectSearch.keyword.trim();
+      where[Op.or] = [
+        { content: { [Op.like]: `%${kw}%` } },
+        { notes: { [Op.like]: `%${kw}%` } },
+      ];
+    }
 
-    const countReports = await Report.count({ where: find.where });
-    const pagination = paginationHelper(initPagination, req.query, countReports);
+    // pagination
+    const initPagination = { currentPage: 1, limitItems: 10 };
+    const totalItems = await Report.count({ where });
+    const pagination = paginationHelper(initPagination, req.query, totalItems);
 
-    const listReport = await Report.findAll({
-      ...find,
+    const data = await Report.findAll({
+      where,
+      order: [["generated_at", "DESC"]],
       limit: pagination.limitItems,
-      offset: pagination.skip
+      offset: pagination.skip,
     });
 
     return res.json({
       code: 200,
-      data: listReport,
-      pagination
+      data,
+      pagination: {
+        current_page: pagination.currentPage,
+        limit: pagination.limitItems,
+        total_items: totalItems,
+        total_pages: pagination.totalPage,
+      },
     });
-
   } catch (error) {
     console.log(error);
-    return res.status(500).json({
-      code: 500,
-      message: "Lỗi server",
-      error: error.message
-    });
+    return res.status(500).json({ code: 500, message: "Lỗi server", error: error.message });
   }
 };
+
 // GET /api/v1/report/detail/:id
 module.exports.detail = async (req, res) => {
   try {
-    const id = req.params.id;
-
-    const report = await Report.findOne({
-      where: { report_id: id }
-    });
-
-    if (!report) {
-      return res.status(404).json({
-        code: 404,
-        message: "Không tìm thấy báo cáo"
-      });
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ code: 400, message: "id không hợp lệ" });
     }
 
-    return res.json({
-      code: 200,
-      data: report
-    });
+    const report = await Report.findOne({ where: { report_id: id } });
+    if (!report) {
+      return res.status(404).json({ code: 404, message: "Không tìm thấy báo cáo" });
+    }
 
+    return res.json({ code: 200, data: report });
   } catch (error) {
-    return res.status(500).json({
-      code: 500,
-      message: "Lỗi server",
-      error: error.message
-    });
+    return res.status(500).json({ code: 500, message: "Lỗi server", error: error.message });
   }
 };
-// POST /api/v1/report/create
+
+// POST /api/v1/report/create (AUTH)
+// body: { report_type, target_id, content?, notes? }
 module.exports.create = async (req, res) => {
   try {
-    const body = req.body;
+    const { report_type, target_id, content = null, notes = null } = req.body;
 
-    // danh sách loại hợp lệ
-    const allowedType = ["post", "user", "book", "chat"];
-    if (!allowedType.includes(body.report_type)) {
+    if (!report_type || !ALLOWED_TYPES.includes(report_type)) {
       return res.status(400).json({
         code: 400,
-        message: "report_type chỉ được: post, user, book, chat"
+        message: "report_type là bắt buộc và chỉ được: post, user, book, chat",
       });
     }
 
-    // FIX QUAN TRỌNG: luôn lấy user_id từ token
+    const tid = parseInt(target_id, 10);
+    if (!Number.isFinite(tid)) {
+      return res.status(400).json({ code: 400, message: "target_id là bắt buộc và phải là số" });
+    }
+
+    // luôn lấy user_id từ token
     const userId = req.user.user_id;
 
-    const report = await Report.create({
-      ...body,
-      user_id: userId // bắt buộc phải gán
+    const created = await Report.create({
+      user_id: userId,
+      report_type,
+      target_id: tid,
+      content,
+      notes,
+      // generated_at: DB tự set
     });
 
     return res.json({
       code: 200,
       message: "Tạo báo cáo thành công",
-      data: report
+      data: created,
     });
-
   } catch (error) {
-    return res.status(500).json({
-      code: 500,
-      message: "Lỗi server",
-      error: error.message
-    });
+    return res.status(500).json({ code: 500, message: "Lỗi server", error: error.message });
   }
 };
 
-// PATCH /api/v1/report/edit/:id
+// PATCH /api/v1/report/edit/:id (AUTH)
 module.exports.edit = async (req, res) => {
   try {
-    const id = req.params.id;
-    const body = req.body;
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ code: 400, message: "id không hợp lệ" });
+    }
 
-    const allowedType = ["post", "user", "book", "chat"];
-    if (body.report_type && !allowedType.includes(body.report_type)) {
+    const body = { ...req.body };
+
+    // không cho sửa các field nhạy cảm
+    delete body.user_id;
+    delete body.report_id;
+
+    if (body.report_type && !ALLOWED_TYPES.includes(body.report_type)) {
       return res.status(400).json({
         code: 400,
-        message: "report_type chỉ được: post, user, book, chat"
+        message: "report_type chỉ được: post, user, book, chat",
       });
     }
 
-    const [affectedRows] = await Report.update(body, {
-      where: { report_id: id }
-    });
+    if (body.target_id !== undefined) {
+      const tid = parseInt(body.target_id, 10);
+      if (!Number.isFinite(tid)) {
+        return res.status(400).json({ code: 400, message: "target_id không hợp lệ" });
+      }
+      body.target_id = tid;
+    }
 
+    const [affectedRows] = await Report.update(body, { where: { report_id: id } });
     if (affectedRows === 0) {
-      return res.status(404).json({
-        code: 404,
-        message: "Không tìm thấy báo cáo"
-      });
+      return res.status(404).json({ code: 404, message: "Không tìm thấy báo cáo" });
     }
 
-    return res.json({
-      code: 200,
-      message: "Cập nhật báo cáo thành công"
-    });
-
+    const updated = await Report.findOne({ where: { report_id: id } });
+    return res.json({ code: 200, message: "Cập nhật báo cáo thành công", data: updated });
   } catch (error) {
-    return res.status(500).json({
-      code: 500,
-      message: "Lỗi server",
-      error: error.message
-    });
+    return res.status(500).json({ code: 500, message: "Lỗi server", error: error.message });
   }
 };
 
-// DELETE /api/v1/report/delete/:id
+// DELETE /api/v1/report/delete/:id (AUTH)
 module.exports.delete = async (req, res) => {
   try {
-    const id = req.params.id;
-
-    const deleted = await Report.destroy({
-      where: { report_id: id }
-    });
-
-    if (!deleted) {
-      return res.status(404).json({
-        code: 404,
-        message: "Không tìm thấy báo cáo"
-      });
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ code: 400, message: "id không hợp lệ" });
     }
 
-    return res.json({
-      code: 200,
-      message: "Xóa báo cáo thành công"
-    });
+    const deleted = await Report.destroy({ where: { report_id: id } });
+    if (!deleted) {
+      return res.status(404).json({ code: 404, message: "Không tìm thấy báo cáo" });
+    }
 
+    return res.json({ code: 200, message: "Xóa báo cáo thành công" });
   } catch (error) {
-    return res.status(500).json({
-      code: 500,
-      message: "Lỗi server",
-      error: error.message
-    });
+    return res.status(500).json({ code: 500, message: "Lỗi server", error: error.message });
   }
 };
-// GET /api/v1/report/my-reports
+
+// GET /api/v1/report/my-reports (AUTH)
 module.exports.myReports = async (req, res) => {
   try {
     const userId = req.user.user_id;
     const reports = await Report.findAll({
       where: { user_id: userId },
-      order: [["generated_at", "DESC"]]
+      order: [["generated_at", "DESC"]],
     });
-    return res.json({
-        code: 200,
-        data: reports
-    });
-    } catch (error) {
-    return res.status(500).json({
-        code: 500,
-        message: "Lỗi server",
-        error: error.message
-    });
+
+    return res.json({ code: 200, data: reports });
+  } catch (error) {
+    return res.status(500).json({ code: 500, message: "Lỗi server", error: error.message });
   }
 };
