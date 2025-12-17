@@ -149,84 +149,133 @@ module.exports.create = async (req, res) => {
    //Xử lý thanh toán thành công → Update payment → Update seller role
 module.exports.momoCallback = async (req, res) => {
   try {
-    const { resultCode, orderId, extraData } = req.query;
+    const { resultCode, orderId, extraData, message } = req.query;
 
-    if (resultCode !== "0") {
-      return res.status(400).json({
-        code: 400,
-        message: "Thanh toán thất bại"
+    // 1️⃣ Tìm payment
+    const payment = await Payment.findOne({
+      where: { order_id: orderId },
+    });
+
+    if (!payment) {
+      return res.status(404).json({
+        code: 404,
+        message: "Không tìm thấy giao dịch",
       });
     }
 
-    const info = JSON.parse(extraData);
-    const user_id = info.user_id;
-    const role_id = info.role_id;
+    // Parse extraData an toàn
+    let info = {};
+    try {
+      info = extraData ? JSON.parse(extraData) : {};
+    } catch {
+      info = {};
+    }
 
-    const role = await Role.findByPk(role_id);
-    const duration = role.duration_days || 30;
-    // CẬP NHẬT PAYMENT THÀNH SUCCESS
+    const user_id = info.user_id || payment.user_id;
+    const role_id = info.role_id; // seller role
+
+    // 2️⃣ Thanh toán thất bại
+    if (String(resultCode) !== "0") {
+      await Payment.update(
+        {
+          status: "failed",
+          result_code: Number(resultCode) || null,
+          message: message || "Thanh toán thất bại",
+        },
+        { where: { order_id: orderId } }
+      );
+
+      return res.redirect("http://localhost:5173/payment-fail");
+    }
+
+    // 3️⃣ Thanh toán thành công
     await Payment.update(
       {
         status: "success",
         result_code: 0,
-        message: "Thanh toán thành công"
+        message: "Thanh toán thành công",
       },
       { where: { order_id: orderId } }
     );
-    // KIỂM TRA USER ĐÃ CÓ SELLER CHƯA
-    const existingRole = await UserRole.findOne({
-      where: {
-        user_id,
-        role_id: 2,      // seller
-        is_active: true
-      }
-    });
+
+    // Nếu không có role_id → kết thúc
+    if (!role_id) {
+      return res.redirect("http://localhost:5173/payment-success");
+    }
+
+    const role = await Role.findByPk(role_id);
+    const duration = role?.duration_days || 30;
 
     const now = new Date();
-    let newExpire;
 
-    if (existingRole) {
-      // QUYỀN ĐÃ TỒN TẠI → KIỂM TRA HẠN
-      const expire = new Date(existingRole.expire_at);
+    // 4️⃣ LẤY ROLE ACTIVE HIỆN TẠI (1 user chỉ có 1 role)
+    const userRole = await UserRole.findOne({
+      where: {
+        user_id,
+        is_active: true,
+      },
+    });
 
-      if (expire < now) {
-        // ĐÃ HẾT HẠN → reset = hôm nay + 30 ngày
-        newExpire = new Date();
-        newExpire.setDate(now.getDate() + duration);
-      } else {
-        // CÒN HẠN → cộng thêm 30 ngày
-        newExpire = new Date(expire);
-        newExpire.setDate(expire.getDate() + duration);
-      }
-
-      existingRole.expire_at = newExpire;
-      await existingRole.save();
-
-    } else {
-      // CHƯA CÓ SELLER → tạo mới
-      newExpire = new Date();
-      newExpire.setDate(now.getDate() + duration);
+    // 5️⃣ CASE 1: CHƯA CÓ ROLE → tạo buyer trước (hiếm)
+    if (!userRole) {
+      const expire = new Date(now);
+      expire.setDate(now.getDate() + duration);
 
       await UserRole.create({
         user_id,
-        role_id: 2,
+        role_id: 2, // seller
         start_at: now,
-        expire_at: newExpire,
-        is_active: true
+        expire_at: expire,
+        is_active: true,
       });
+
+      return res.redirect("http://localhost:5173/payment-success");
+    }
+
+    // 6️⃣ CASE 2: ĐÃ LÀ SELLER → GIA HẠN
+    if (userRole.role_id === 2) {
+      const currentExpire = userRole.expire_at
+        ? new Date(userRole.expire_at)
+        : now;
+
+      const baseDate = currentExpire > now ? currentExpire : now;
+      const newExpire = new Date(baseDate);
+      newExpire.setDate(baseDate.getDate() + duration);
+
+      await UserRole.update(
+        {
+          expire_at: newExpire,
+        },
+        { where: { id: userRole.id } }
+      );
+    }
+
+    // 7️⃣ CASE 3: ĐANG LÀ BUYER → UPDATE THÀNH SELLER
+    if (userRole.role_id === 1) {
+      const expire = new Date(now);
+      expire.setDate(now.getDate() + duration);
+
+      await UserRole.update(
+        {
+          role_id: 2, // seller
+          start_at: now,
+          expire_at: expire,
+        },
+        { where: { id: userRole.id } }
+      );
     }
 
     return res.redirect("http://localhost:5173/payment-success");
-
   } catch (error) {
-    console.log(error);
-    res.status(500).json({
+    console.log("MOMO CALLBACK ERROR:", error);
+    return res.status(500).json({
       code: 500,
       message: "Lỗi callback MoMo",
-      error: error.message
+      error: error.message,
     });
   }
 };
+
   // GET /api/v1/payment
 module.exports.index = async (req, res) => {
   try {

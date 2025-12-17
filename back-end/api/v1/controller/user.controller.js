@@ -63,8 +63,8 @@ module.exports.login = async (req, res) => {
       return res.json({ code: 400, message: "Thiếu email hoặc password" });
     }
 
-    // ✅ Lấy user + user_roles (active) + role
-    const user = await User.findOne({
+    // ✅ Lấy user + user_roles active
+    let user = await User.findOne({
       where: { email, deleted: "false" },
       include: [
         {
@@ -76,11 +76,11 @@ module.exports.login = async (req, res) => {
             {
               model: Role,
               as: "role",
-              attributes: ["role_id", "role_name"]
-            }
-          ]
-        }
-      ]
+              attributes: ["role_id", "role_name"],
+            },
+          ],
+        },
+      ],
     });
 
     if (!user) {
@@ -92,33 +92,104 @@ module.exports.login = async (req, res) => {
       return res.json({ code: 400, message: "Mật khẩu sai" });
     }
 
-    // ACCESS TOKEN
+    // ❌ Check trạng thái user
+    if (user.status === "banned") {
+      return res.json({
+        code: 403,
+        message: "Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.",
+      });
+    }
+
+    if (user.status === "inactive") {
+      return res.json({
+        code: 403,
+        message: "Tài khoản đang bị tạm ngưng.",
+      });
+    }
+
+    // ==================================================
+    // ✅ AUTO HẾT HẠN SELLER → QUAY VỀ BUYER (UPDATE)
+    // ==================================================
+    const now = new Date();
+    const activeRole = user.user_roles?.[0]; // 1 user chỉ có 1 role active
+
+    if (
+      activeRole &&
+      activeRole.role_id === 2 && // seller
+      activeRole.expire_at &&
+      new Date(activeRole.expire_at) < now
+    ) {
+      // 👉 UPDATE CHÍNH ROW NÀY → buyer
+      await UserRole.update(
+        {
+          role_id: 1,        // buyer
+          start_at: now,
+          expire_at: null,
+          is_active: true,
+        },
+        { where: { id: activeRole.id } }
+      );
+
+      // fetch lại user để trả role mới
+      user = await User.findOne({
+        where: { email, deleted: "false" },
+        include: [
+          {
+            model: UserRole,
+            as: "user_roles",
+            required: false,
+            where: { is_active: true },
+            include: [
+              {
+                model: Role,
+                as: "role",
+                attributes: ["role_id", "role_name"],
+              },
+            ],
+          },
+        ],
+      });
+    }
+
+    // ✅ ACCESS TOKEN
     const accessToken = jwt.sign(
       { user_id: user.user_id },
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: ACCESS_TOKEN_TTL }
     );
 
-    // REFRESH TOKEN
+    // ✅ REFRESH TOKEN
     const refreshToken = crypto.randomBytes(64).toString("hex");
     const hashedRT = await bcrypt.hash(refreshToken, 10);
 
     await Session.create({
       user_id: user.user_id,
       refresh_token: hashedRT,
-      expires_at: new Date(Date.now() + REFRESH_TOKEN_TTL)
+      expires_at: new Date(Date.now() + REFRESH_TOKEN_TTL),
     });
+if (user.status === "banned") {
+  return res.json({
+    code: 403,
+    message: "Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên."
+  });
+}
 
+if (user.status === "inactive") {
+  return res.json({
+    code: 403,
+    message: "Tài khoản đang bị tạm ngưng."
+  });
+}
     // ⚠️ Nếu bạn test local HTTP, secure:true sẽ không set cookie.
     // Giữ nguyên như bạn đang dùng; khi cần test local có thể đổi secure:false.
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
       sameSite: "none",
-      maxAge: REFRESH_TOKEN_TTL
+      maxAge: REFRESH_TOKEN_TTL,
     });
 
-    // ✅ Trả về user kèm role
+    // ✅ RESPONSE GIỮ NGUYÊN FORMAT
     return res.json({
       code: 200,
       message: "Đăng nhập thành công",
@@ -134,15 +205,21 @@ module.exports.login = async (req, res) => {
           start_at: ur.start_at,
           expire_at: ur.expire_at,
           role: ur.role
-            ? { role_id: ur.role.role_id, role_name: ur.role.role_name }
-            : null
-        }))
-      }
+            ? {
+                role_id: ur.role.role_id,
+                role_name: ur.role.role_name,
+              }
+            : null,
+        })),
+      },
     });
-
   } catch (error) {
     console.log("LOGIN ERROR:", error);
-    return res.json({ code: 500, message: "Lỗi server", error: error.message });
+    return res.json({
+      code: 500,
+      message: "Lỗi server",
+      error: error.message,
+    });
   }
 };
 

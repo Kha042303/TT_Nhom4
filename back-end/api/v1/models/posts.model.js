@@ -48,7 +48,7 @@ const Post = sequelize.define(
       allowNull: false,
       defaultValue: "false"
     },
-    image_url: {
+    images: {
   type: DataTypes.TEXT("long"),
       allowNull: true,
       defaultValue: null

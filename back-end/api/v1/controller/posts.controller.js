@@ -1,341 +1,355 @@
 const { Op } = require("sequelize");
 const Post = require("../models/posts.model.js");
+const User = require("../models/user.model.js");
+const UserRole = require("../models/user_roles.model.js");
+const Role = require("../models/roles.model.js");
 const paginationHelper = require("../../../helpers/pagination.js");
 const searchHelper = require("../../../helpers/Search.js");
 
-// GET /api/v1/post
+/* =========================
+   HELPER: CHECK ADMIN
+========================= */
+const isAdmin = (user) =>
+  user?.user_roles?.some(
+    (ur) => ur.is_active && ur.role?.role_name === "admin"
+  );
+
+/* =========================
+   GET /api/v1/post
+   USER + ADMIN
+========================= */
 module.exports.index = async (req, res) => {
   try {
     const find = {
       where: { deleted: "false" },
-      order: [["created_at", "DESC"]]
+      order: [["post_id", "DESC"]],
     };
-    // Filter status
+
+    // filter status (admin dùng)
     if (req.query.status) {
       find.where.status = req.query.status;
     }
-    // Pagination init
-    let initPagination = {
-      currentPage: 1,
-      limitItems: 8
-    };
-    const totalPosts = await Post.count({ where: find.where });
-    const pagination = paginationHelper(
-      initPagination,
-      req.query,
-      totalPosts
-    );
+
+    // search title + content
+    if (req.query.keyword) {
+      const s = searchHelper(req.query);
+      find.where[Op.or] = [
+        { title: { [Op.regexp]: s.keyword } },
+        { content: { [Op.regexp]: s.keyword } },
+      ];
+    }
+
+    const initPagination = { currentPage: 1, limitItems: 8 };
+    const total = await Post.count({ where: find.where });
+    const pagination = paginationHelper(initPagination, req.query, total);
+
     find.limit = pagination.limitItems;
     find.offset = pagination.skip;
-    
+
     const posts = await Post.findAll(find);
 
-    const data = posts.map(item => ({
-      ...item.dataValues,
-      images: item.images ? JSON.parse(item.images) : []
-    }));
-    res.json({
+    return res.json({
       code: 200,
-      message: "Lấy danh sách bài viết thành công",
-      data,
-      pagination
+      data: posts.map((p) => ({
+        ...p.dataValues,
+        images: p.images ? JSON.parse(p.images) : [],
+      })),
+      pagination,
     });
-  } catch (error) {
-    res.status(500).json({
+  } catch (err) {
+    return res.status(500).json({
       code: 500,
       message: "Lỗi khi lấy danh sách bài viết",
-      error: error.message
+      error: err.message,
     });
   }
 };
-// GET /api/v1/post/detail/:id
+
+/* =========================
+   GET /api/v1/post/detail/:id
+   USER + ADMIN
+========================= */
 module.exports.detail = async (req, res) => {
   try {
-    const id = req.params.id;
-
     const post = await Post.findOne({
-      where: {
-        post_id: id,
-        deleted: "false"
-      }
+      where: { post_id: req.params.id, deleted: "false" },
     });
 
     if (!post) {
       return res.status(404).json({
         code: 404,
-        message: "Không tìm thấy bài viết"
+        message: "Không tìm thấy bài viết",
       });
     }
 
-    res.json({
+    return res.json({
       code: 200,
       data: {
         ...post.dataValues,
-        images: post.images ? JSON.parse(post.images) : []
-      }
+        images: post.images ? JSON.parse(post.images) : [],
+      },
     });
-
-  } catch (error) {
-    res.status(500).json({
+  } catch (err) {
+    return res.status(500).json({
       code: 500,
       message: "Lỗi khi lấy chi tiết bài viết",
-      error: error.message
-    });
-  }
-};
-// PATCH /api/v1/post/change-status/:id
-module.exports.changeStatus = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const status = req.body.status;
-
-    const allowedStatus = ["visible", "hidden"];
-
-    if (!allowedStatus.includes(status)) {
-      return res.status(400).json({
-        code: 400,
-        message: "Status không hợp lệ! Chỉ được: visible, hidden"
-      });
-    }
-    const [affectedRows] = await Post.update(
-      { status },
-      {
-        where: {
-          post_id: id,
-          deleted: "false"
-        }
-      }
-    );
-    if (affectedRows === 0) {
-      return res.status(404).json({
-        code: 404,
-        message: "Không tìm thấy bài viết hoặc đã bị xóa"
-      });
-    }
-
-    res.json({
-      code: 200,
-      message: "Cập nhật trạng thái thành công"
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: "Lỗi khi cập nhật trạng thái",
-      error: error.message
+      error: err.message,
     });
   }
 };
 
-// POST /api/v1/post/create
+/* =========================
+   POST /api/v1/post/create
+   USER + ADMIN
+========================= */
 module.exports.create = async (req, res) => {
   try {
-    const body = req.body;
     const userId = req.user.user_id;
+    const body = req.body;
 
-    // Kiểm tra title
     if (!body.title) {
       return res.status(400).json({
         code: 400,
-        message: "title là bắt buộc"
+        message: "title là bắt buộc",
       });
     }
 
-    // Upload ảnh
-    if (req.files && req.files.length > 0) {
-      const imagePaths = req.files.map(file => `/images/posts/${file.filename}`);
-      body.images = JSON.stringify(imagePaths);
+    if (req.files?.length) {
+      body.images = JSON.stringify(
+        req.files.map((f) => `/images/posts/${f.filename}`)
+      );
     }
 
-    const allowedStatus = ["visible", "hidden"];
-    if (body.status && !allowedStatus.includes(body.status)) {
-      return res.status(400).json({
-        code: 400,
-        message: "Status không hợp lệ"
-      });
-    }
-
-    const data = await Post.create({
+    const post = await Post.create({
       user_id: userId,
       title: body.title,
       content: body.content || null,
-      image_url: body.images || null,
+      images: body.images || null,
+      status: body.status || "visible",
       is_violation: body.is_violation ?? 0,
-      status: body.status || "visible"
     });
 
     return res.json({
       code: 200,
       message: "Tạo bài viết thành công",
-      data
+      data: post,
     });
-
-  } catch (error) {
+  } catch (err) {
     return res.status(500).json({
       code: 500,
       message: "Lỗi khi tạo bài viết",
-      error: error.message
+      error: err.message,
     });
   }
 };
 
-// PATCH /api/v1/post/edit/:id
+/* =========================
+   PATCH /api/v1/post/edit/:id
+   USER: bài của mình
+   ADMIN: tất cả
+========================= */
 module.exports.edit = async (req, res) => {
   try {
-    const id = req.params.id;
-    const body = req.body;
-    const userId = req.user.user_id; 
-
     const post = await Post.findOne({
-      where: {
-        post_id: id,
-        deleted: "false"
-      }
+      where: { post_id: req.params.id, deleted: "false" },
     });
 
     if (!post) {
       return res.status(404).json({
         code: 404,
-        message: "Không tìm thấy bài viết"
+        message: "Không tìm thấy bài viết",
       });
     }
 
-    // Upload ảnh mới
-    if (req.files && req.files.length > 0) {
-      const imagePaths = req.files.map(file => `/uploads/posts/${file.filename}`);
-      body.images = JSON.stringify(imagePaths);
-    }
+    const user = await User.findByPk(req.user.user_id, {
+      include: [
+        {
+          model: UserRole,
+          as: "user_roles",
+          where: { is_active: true },
+          required: false,
+          include: [{ model: Role, as: "role" }],
+        },
+      ],
+    });
 
-    if (post.user_id !== userId) {
+    if (!isAdmin(user) && post.user_id !== user.user_id) {
       return res.status(403).json({
         code: 403,
-        message: "Bạn không có quyền sửa bài viết này"
-      });
-    }
-
-    const allowedStatus = ["visible", "hidden"];
-    if (body.status && !allowedStatus.includes(body.status)) {
-      return res.status(400).json({
-        code: 400,
-        message: "Status không hợp lệ"
+        message: "Bạn không có quyền sửa bài viết này",
       });
     }
 
     const updateData = {};
+    ["title", "content", "status", "is_violation"].forEach((k) => {
+      if (req.body[k] !== undefined) updateData[k] = req.body[k];
+    });
 
-    if (body.title !== undefined) updateData.title = body.title;
-    if (body.content !== undefined) updateData.content = body.content;
-    if (body.images !== undefined) updateData.images = body.images;
-    if (body.is_violation !== undefined) updateData.is_violation = body.is_violation;
-    if (body.status !== undefined) updateData.status = body.status;
+    if (req.files?.length) {
+      updateData.images = JSON.stringify(
+        req.files.map((f) => `/images/posts/${f.filename}`)
+      );
+    }
 
     await Post.update(updateData, {
-      where: {
-        post_id: id
-      }
+      where: { post_id: post.post_id },
     });
 
-    const updatedPost = await Post.findOne({
-      where: {
-        post_id: id,
-        deleted: "false"
-      }
-    });
+    const updated = await Post.findByPk(post.post_id);
 
-    res.json({
+    return res.json({
       code: 200,
-      message: "Cập nhật bài viết thành công!",
-      data: {
-        ...updatedPost.dataValues,
-        images: updatedPost.images ? JSON.parse(updatedPost.images) : []
-      }
+      message: "Cập nhật bài viết thành công",
+      data: updated,
     });
-
-  } catch (error) {
-    res.status(500).json({
+  } catch (err) {
+    return res.status(500).json({
       code: 500,
       message: "Lỗi khi cập nhật bài viết",
-      error: error.message
+      error: err.message,
     });
   }
 };
 
-// DELETE /api/v1/post/delete/:id
-module.exports.delete = async (req, res) => {
+/* =========================
+   PATCH /api/v1/post/change-status/:id
+   ADMIN ONLY
+========================= */
+module.exports.changeStatus = async (req, res) => {
   try {
-    const id = req.params.id;
-    const userId = req.user.user_id;
-
-    const post = await Post.findOne({
-      where: { post_id: id, deleted: "false" }
+    const user = await User.findByPk(req.user.user_id, {
+      include: [
+        {
+          model: UserRole,
+          as: "user_roles",
+          where: { is_active: true },
+          required: false,
+          include: [{ model: Role, as: "role" }],
+        },
+      ],
     });
 
-    if (!post) {
-      return res.status(404).json({
-        code: 404,
-        message: "Không tìm thấy bài viết"
-      });
-    }
-
-    if (post.user_id !== userId) {
+    if (!isAdmin(user)) {
       return res.status(403).json({
         code: 403,
-        message: "Bạn không có quyền xóa bài viết này"
+        message: "Chỉ admin mới được đổi trạng thái bài viết",
       });
     }
 
-    await Post.update(
-      { deleted: "true" },
-      { where: { post_id: id } }
+    const { status } = req.body;
+    if (!["visible", "hidden"].includes(status)) {
+      return res.status(400).json({
+        code: 400,
+        message: "Status không hợp lệ",
+      });
+    }
+
+    const [affected] = await Post.update(
+      { status },
+      { where: { post_id: req.params.id, deleted: "false" } }
     );
 
-    res.json({
-      code: 200,
-      message: "Xóa bài viết thành công"
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: "Lỗi khi xóa bài viết",
-      error: error.message
-    });
-  }
-};
-
-// GET /api/v1/post/my-posts
-module.exports.myPosts = async (req, res) => {
-  try {
-    const userId = req.user.user_id;
-
-    const posts = await Post.findAll({
-      where: {
-        user_id: userId,
-        deleted: "false"
-      },
-      order: [["created_at", "DESC"]]
-    });
-    if(!posts){
+    if (!affected) {
       return res.status(404).json({
-        code:404,
-        message:"Người dùng không có bài viết nào"
+        code: 404,
+        message: "Không tìm thấy bài viết",
       });
     }
 
     return res.json({
       code: 200,
-      message: "Lấy danh sách bài viết của bạn thành công!",
-      data: posts.map(item => ({
-        ...item.dataValues,
-        images: item.images ? JSON.parse(item.images) : []
-      }))
+      message: "Cập nhật trạng thái thành công",
     });
-
-  } catch (error) {
+  } catch (err) {
     return res.status(500).json({
       code: 500,
-      message: "Lỗi khi lấy danh sách bài viết của bạn",
-      error: error.message
+      message: "Lỗi khi cập nhật trạng thái",
+      error: err.message,
+    });
+  }
+};
+
+/* =========================
+   DELETE /api/v1/post/delete/:id
+   USER: bài của mình
+   ADMIN: tất cả
+========================= */
+module.exports.delete = async (req, res) => {
+  try {
+    const post = await Post.findOne({
+      where: { post_id: req.params.id, deleted: "false" },
+    });
+
+    if (!post) {
+      return res.status(404).json({
+        code: 404,
+        message: "Không tìm thấy bài viết",
+      });
+    }
+
+    const user = await User.findByPk(req.user.user_id, {
+      include: [
+        {
+          model: UserRole,
+          as: "user_roles",
+          where: { is_active: true },
+          required: false,
+          include: [{ model: Role, as: "role" }],
+        },
+      ],
+    });
+
+    if (!isAdmin(user) && post.user_id !== user.user_id) {
+      return res.status(403).json({
+        code: 403,
+        message: "Bạn không có quyền xóa bài viết này",
+      });
+    }
+
+    await Post.update(
+      { deleted: "true" },
+      { where: { post_id: post.post_id } }
+    );
+
+    return res.json({
+      code: 200,
+      message: "Xóa bài viết thành công",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      code: 500,
+      message: "Lỗi khi xóa bài viết",
+      error: err.message,
+    });
+  }
+};
+
+/* =========================
+   GET /api/v1/post/my-posts
+   USER
+========================= */
+module.exports.myPosts = async (req, res) => {
+  try {
+    const posts = await Post.findAll({
+      where: {
+        user_id: req.user.user_id,
+        deleted: "false",
+      },
+      order: [["post_id", "DESC"]],
+    });
+
+    return res.json({
+      code: 200,
+      data: posts.map((p) => ({
+        ...p.dataValues,
+        images: p.images ? JSON.parse(p.images) : [],
+      })),
+    });
+  } catch (err) {
+    return res.status(500).json({
+      code: 500,
+      message: "Lỗi khi lấy bài viết của bạn",
+      error: err.message,
     });
   }
 };
