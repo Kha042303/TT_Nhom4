@@ -27,17 +27,23 @@ export default function Header({ user, loading }: HeaderProps) {
 
         {/* Nav */}
         <nav className="hidden md:flex items-center gap-6 text-sm">
-          <Link className="hover:text-sky-600" to="/">
-            Tìm Sách
-          </Link>
           <Link
             className="hover:text-sky-600"
             to={!loading && user ? "/sell" : "/signin"}
           >
             Đăng Bán Sách
           </Link>
+          <Link className="hover:text-sky-600" to="/community">
+            Cộng Đồng
+          </Link>
           <Link className="hover:text-sky-600" to="/about">
             Giới Thiệu
+          </Link>
+          <Link className="hover:text-sky-600" to="/contact">
+            Liên Hệ
+          </Link>
+          <Link className="hover:text-sky-600" to="/report">
+            Báo cáo
           </Link>
         </nav>
 
@@ -77,13 +83,17 @@ export default function Header({ user, loading }: HeaderProps) {
 
           {!loading && user ? (
             <div className="flex items-center gap-2">
-              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border hover:bg-slate-50">
+              <Link
+                to={user?.user_id ? `/user/${user.user_id}` : "/userinfo"}
+                className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border hover:bg-slate-50"
+              >
                 <User2 size={18} className="opacity-80" />
                 <span className="hidden sm:inline text-sm">
                   {user.full_name || user.email}
                 </span>
                 <ChevronDown size={16} className="opacity-60" />
-              </button>
+              </Link>
+
               <Link
                 className="h-10 px-4 inline-flex items-center justify-center rounded-xl bg-slate-900 text-white hover:opacity-90"
                 to="/logout"

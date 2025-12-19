@@ -15,6 +15,8 @@ import {
   Heart,
   CheckCircle2,
 } from "lucide-react";
+import { Link } from "react-router-dom";
+
 
 export default function About() {
   const { user, loading } = useAuth();
@@ -151,12 +153,12 @@ export default function About() {
           </div>
 
           <div className="mt-10 flex justify-center">
-            <button
-              type="button"
+            <Link
+              to="/HomePage"
               className="inline-flex items-center gap-2 rounded-xl bg-sky-500 text-white px-6 py-3 font-semibold shadow hover:bg-sky-600"
             >
               Tham Gia Ngay <ArrowRight size={18} />
-            </button>
+            </Link>
           </div>
         </section>
 

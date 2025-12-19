@@ -26,7 +26,7 @@ export default function Footer() {
               </Link>
             </li>
             <li>
-              <Link className="hover:text-sky-600" to="/rules">
+              <Link className="hover:text-sky-600" to="/quydinh">
                 Quy định
               </Link>
             </li>
@@ -42,12 +42,7 @@ export default function Footer() {
           <div className="font-semibold">Hỗ trợ</div>
           <ul className="mt-3 space-y-2 text-sm text-slate-500">
             <li>
-              <Link className="hover:text-sky-600" to="/faq">
-                Câu hỏi thường gặp
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:text-sky-600" to="/guide">
+              <Link className="hover:text-sky-600" to="/huongdan">
                 Hướng dẫn đăng bài
               </Link>
             </li>

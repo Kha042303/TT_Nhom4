@@ -10,6 +10,12 @@ import RequireAuth from "./components/RequireAuth";
 import SellBook from "./pages/SellBook";
 import About from "./pages/About";
 import ChatPage from "./pages/ChatPage";
+import ContactPage from "./pages/ContactPage";
+import QuyDinh from "./pages/QuyDinh";
+import HuongDan from "./pages/HuongDan";
+import ReportPage from "./pages/ReportPage";
+import CommunityPage from "./pages/CommunityPage";
+import UserInfoPage from "./pages/UserInfoPage";
 
 export default function App() {
   return (
@@ -33,7 +39,13 @@ export default function App() {
             <Route path="*" element={<HomePage />} />
             <Route path="/sell" element={<SellBook />} />
             <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<ContactPage />} />
             <Route path="/chat" element={<ChatPage />} />
+            <Route path="/quydinh" element={<QuyDinh />} />
+            <Route path="/huongdan" element={<HuongDan />} />
+            <Route path="/report" element={<ReportPage />} />
+            <Route path="/community" element={<CommunityPage />} />
+            <Route path="/user/:id" element={<UserInfoPage />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>
