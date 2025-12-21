@@ -23,7 +23,7 @@ export default function Signin() {
       const roles = getRoleNames(rawUser);
 
       toast.success("Đăng nhập thành công!");
-      if (roles.includes("admin")) nav("/admin/users");
+      if (roles.includes("admin")) nav("/admin");
       else nav("/");
     } catch (err: any) {
       toast.error(err?.message || "Đăng nhập thất bại");

@@ -1,15 +1,32 @@
 import { useEffect, useState } from "react";
-import {
-  getAdminUsers,
-  toggleUserStatus,
-  deleteUser,
-} from "../../api/admin.users";
+import { getAdminUsers, toggleUserStatus, deleteUser } from "../../api/admin.users";
+
+const ROLE_NAME_BY_ID: Record<number, string> = {
+  1: "buyer",
+  2: "seller",
+  3: "admin",
+};
 
 type UserRole = {
+  id?: number;
+  user_id?: number;
+  role_id?: number;
+  start_at?: string;
+  expire_at?: string | null;
+  is_active?: boolean;
+
+  // có backend trả role nested
   role?: {
-    role_id: number;
-    role_name: string;
-  };
+    role_id?: number;
+    role_name?: string;
+    description?: string;
+  } | null;
+
+  // phòng khi backend trả Role (PascalCase)
+  Role?: {
+    role_id?: number;
+    role_name?: string;
+  } | null;
 };
 
 type User = {
@@ -29,13 +46,22 @@ export default function AdminUsers() {
 
   const fetchUsers = async (p = page) => {
     const res = await getAdminUsers(p, LIMIT);
-    setUsers(res.data.data);
-    setPage(res.data.pagination.current_page);
-    setTotalPage(res.data.pagination.total_pages);
+
+    // ✅ bắt nhiều dạng response: data có thể là mảng hoặc data.data
+    const list: User[] = res.data?.data?.data || res.data?.data || [];
+    setUsers(Array.isArray(list) ? list : []);
+
+    setPage(res.data?.pagination?.current_page || p);
+    setTotalPage(res.data?.pagination?.total_pages || 1);
+
+    // ✅ debug 1 lần (xong thì xóa)
+    // console.log("FIRST USER:", list?.[0]);
+    // console.log("FIRST USER user_roles:", list?.[0]?.user_roles);
   };
 
   useEffect(() => {
     fetchUsers(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleToggle = async (u: User) => {
@@ -51,31 +77,61 @@ export default function AdminUsers() {
     fetchUsers();
   };
 
-  // helper hiển thị role
+  const getRoleColor = (roleName: string) => {
+    const r = roleName.toLowerCase();
+    if (r === "admin") return "bg-red-100 text-red-600";
+    if (r === "seller") return "bg-blue-100 text-blue-600";
+    if (r === "buyer") return "bg-green-100 text-green-600";
+    return "bg-gray-100 text-gray-600";
+  };
+
+  // ✅ helper hiển thị role: ưu tiên role.role_name, không có thì fallback role_id
   const renderRole = (u: User) => {
-    if (!u.user_roles || u.user_roles.length === 0) {
+    const rolesRaw = u.user_roles || [];
+    if (!Array.isArray(rolesRaw) || rolesRaw.length === 0) {
       return <span className="text-xs text-gray-400">Chưa có</span>;
     }
 
-    const roleName = u.user_roles[0]?.role?.role_name;
+    const now = Date.now();
 
-    if (!roleName) {
+    const roleNames = rolesRaw
+      .filter((ur) => ur?.is_active !== false) // nếu thiếu is_active -> coi như active
+      .filter((ur) => {
+        if (!ur?.expire_at) return true;
+        const exp = Date.parse(ur.expire_at);
+        if (Number.isNaN(exp)) return true;
+        return exp > now;
+      })
+      .map((ur) => {
+        // ưu tiên role_name từ object role
+        const name =
+          ur?.role?.role_name ||
+          ur?.Role?.role_name ||
+          (typeof ur?.role_id === "number" ? ROLE_NAME_BY_ID[ur.role_id] : undefined);
+
+        // nếu vẫn không có thì show role_id cho khỏi trống
+        if (!name && typeof ur?.role_id === "number") return `role_${ur.role_id}`;
+        return name;
+      })
+      .filter((x): x is string => Boolean(x));
+
+    if (roleNames.length === 0) {
       return <span className="text-xs text-gray-400">Chưa có</span>;
     }
-
-    const color =
-      roleName === "admin"
-        ? "bg-red-100 text-red-600"
-        : roleName === "seller"
-        ? "bg-blue-100 text-blue-600"
-        : "bg-gray-100 text-gray-600";
 
     return (
-      <span
-        className={`inline-flex min-w-[80px] justify-center rounded-full px-3 py-1 text-xs font-semibold ${color}`}
-      >
-        {roleName.toUpperCase()}
-      </span>
+      <div className="flex flex-wrap justify-center gap-1">
+        {roleNames.map((roleName) => (
+          <span
+            key={roleName}
+            className={`inline-flex min-w-[80px] justify-center rounded-full px-3 py-1 text-xs font-semibold ${getRoleColor(
+              roleName
+            )}`}
+          >
+            {roleName.toUpperCase()}
+          </span>
+        ))}
+      </div>
     );
   };
 
@@ -83,60 +139,42 @@ export default function AdminUsers() {
     <div>
       <h1 className="mb-6 text-3xl font-bold">Quản lý người dùng</h1>
 
-      {/* TABLE CARD */}
       <div className="overflow-hidden rounded-xl bg-white shadow">
         <table className="w-full table-fixed text-sm">
-          {/* HEADER */}
           <thead className="bg-gray-50 text-gray-500">
             <tr>
               <th className="w-20 p-4 text-left font-medium">ID</th>
               <th className="w-[300px] p-4 text-left font-medium">Email</th>
               <th className="w-[220px] p-4 text-left font-medium">Họ tên</th>
-              <th className="w-32 p-4 text-center font-medium">Vai trò</th>
+              <th className="w-40 p-4 text-center font-medium">Vai trò</th>
               <th className="w-32 p-4 text-center font-medium">Trạng thái</th>
               <th className="w-52 p-4 text-center font-medium">Hành động</th>
             </tr>
           </thead>
 
-          {/* BODY */}
           <tbody>
             {users.map((u) => (
               <tr key={u.user_id} className="border-t hover:bg-gray-50">
-                {/* ID */}
-                <td className="p-4 text-left align-middle">
-                  {u.user_id}
-                </td>
+                <td className="p-4 text-left align-middle">{u.user_id}</td>
 
-                {/* EMAIL */}
-                <td className="p-4 text-left align-middle truncate">
-                  {u.email}
-                </td>
+                <td className="p-4 text-left align-middle truncate">{u.email}</td>
 
-                {/* NAME */}
-                <td className="p-4 text-left align-middle font-medium truncate">
-                  {u.full_name}
-                </td>
+                <td className="p-4 text-left align-middle font-medium truncate">{u.full_name}</td>
 
-                {/* ROLE */}
-                <td className="p-4 text-center align-middle">
-                  {renderRole(u)}
-                </td>
+                <td className="p-4 text-center align-middle">{renderRole(u)}</td>
 
-                {/* STATUS */}
                 <td className="p-4 text-center align-middle">
                   <span
-                    className={`inline-flex min-w-[72px] justify-center rounded-full px-3 py-1 text-xs font-semibold
-                      ${
-                        u.status === "active"
-                          ? "bg-green-100 text-green-600"
-                          : "bg-red-100 text-red-600"
-                      }`}
+                    className={`inline-flex min-w-[72px] justify-center rounded-full px-3 py-1 text-xs font-semibold ${
+                      u.status === "active"
+                        ? "bg-green-100 text-green-600"
+                        : "bg-red-100 text-red-600"
+                    }`}
                   >
                     {u.status.toUpperCase()}
                   </span>
                 </td>
 
-                {/* ACTIONS */}
                 <td className="p-4 text-center align-middle">
                   <div className="flex justify-center gap-2">
                     <button
@@ -160,7 +198,6 @@ export default function AdminUsers() {
         </table>
       </div>
 
-      {/* PAGINATION */}
       <div className="mt-6 flex items-center justify-end gap-3 text-sm">
         <button
           disabled={page <= 1}

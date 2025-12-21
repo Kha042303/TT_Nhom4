@@ -19,7 +19,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return raw ? (JSON.parse(raw) as User) : null;
   });
 
-  const [token, setToken] = useState<string>(() => localStorage.getItem("token") || "");
+const [token, setToken] = useState<string>(() =>
+  localStorage.getItem("token") || localStorage.getItem("accessToken") || ""
+);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -78,12 +81,28 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
-
 export function getRoleNames(user: User | null) {
   if (!user) return [];
-  if (Array.isArray(user.roles)) return user.roles;
+
+  const now = Date.now();
+
   if (Array.isArray(user.user_roles)) {
-    return user.user_roles.map((ur) => ur?.role?.role_name).filter(Boolean) as string[];
+    return user.user_roles
+      .filter((ur: any) => ur?.is_active === true)
+      .filter((ur: any) => {
+        if (!ur?.expire_at) return true;
+        const exp = Date.parse(ur.expire_at);
+        if (Number.isNaN(exp)) return true;
+        return exp > now;
+      })
+      .map((ur: any) => ur?.role?.role_name)
+      .filter(Boolean) as string[];
   }
+
+  // nếu bạn còn legacy roles string[] thì để fallback:
+  if (Array.isArray((user as any).roles)) return (user as any).roles as string[];
+
   return [];
 }
+
+

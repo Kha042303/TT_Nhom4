@@ -23,8 +23,11 @@ export async function loginApi(email: string, password: string) {
 
   const user: User | undefined =
     data?.user || data?.data?.user || data?.data || data?.userInfo;
+if (token) {
+  localStorage.setItem("token", token);
+  localStorage.setItem("accessToken", token); 
+}
 
-  if (token) localStorage.setItem("token", token);
   if (user) localStorage.setItem("user", JSON.stringify(user));
 
   return { token: token || "", user: user || null, raw: data };

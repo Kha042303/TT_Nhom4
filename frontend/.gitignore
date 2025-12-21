@@ -27,6 +27,10 @@ yarn-error.log*
 dist
 dist-ssr
 *.local
+node_modules/
+node_modules/.vite/
+.vite/
+dist/
 
 # Editor directories and files
 .vscode/*

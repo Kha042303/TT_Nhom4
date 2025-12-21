@@ -1,4 +1,4 @@
-import ProfileSidebar from "../components/userinfo/ProFile";
+import ProfileSidebar from "../components/userinfo/Profile";
 import SellingBooksSection from "../components/userinfo/BookSell";
 import FindRequestsSection from "../components/userinfo/FindBook";
 import type { UserInfoUI, SellingBookUI, FindRequestUI } from "../components/userinfo/types";

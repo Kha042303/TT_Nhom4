@@ -7,7 +7,7 @@ export default function Dashboard() {
     // Gọi API với token từ localStorage/Cookie
     fetch("http://localhost:3000/api/v1/admin/dashboard/stats", {
       headers: {
-        "Authorization": `Bearer ${localStorage.getItem("accessToken")}` // Cần token để qua middleware auth
+        "Authorization": `Bearer ${localStorage.getItem("token")}` // Cần token để qua middleware auth
       }
     })
       .then(res => res.json())
