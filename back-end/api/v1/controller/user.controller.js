@@ -63,7 +63,7 @@ module.exports.login = async (req, res) => {
       return res.json({ code: 400, message: "Thiếu email hoặc password" });
     }
 
-    // ✅ Lấy user + user_roles active
+    // lấy user + user_roles active
     let user = await User.findOne({
       where: { email, deleted: "false" },
       include: [
@@ -92,7 +92,7 @@ module.exports.login = async (req, res) => {
       return res.json({ code: 400, message: "Mật khẩu sai" });
     }
 
-    // ❌ Check trạng thái user
+    // Check trạng thái user
     if (user.status === "banned") {
       return res.json({
         code: 403,
@@ -108,7 +108,7 @@ module.exports.login = async (req, res) => {
     }
 
     // ==================================================
-    // ✅ AUTO HẾT HẠN SELLER → QUAY VỀ BUYER (UPDATE)
+    // AUTO HẾT HẠN SELLER → QUAY VỀ BUYER (UPDATE)
     // ==================================================
     const now = new Date();
     const activeRole = user.user_roles?.[0]; // 1 user chỉ có 1 role active

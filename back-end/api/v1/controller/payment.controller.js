@@ -151,7 +151,7 @@ module.exports.momoCallback = async (req, res) => {
   try {
     const { resultCode, orderId, extraData, message } = req.query;
 
-    // 1️⃣ Tìm payment
+    //Tìm payment
     const payment = await Payment.findOne({
       where: { order_id: orderId },
     });
@@ -174,7 +174,7 @@ module.exports.momoCallback = async (req, res) => {
     const user_id = info.user_id || payment.user_id;
     const role_id = info.role_id; // seller role
 
-    // 2️⃣ Thanh toán thất bại
+    // Thanh toán thất bại
     if (String(resultCode) !== "0") {
       await Payment.update(
         {
@@ -188,7 +188,7 @@ module.exports.momoCallback = async (req, res) => {
       return res.redirect("http://localhost:5173/payment-fail");
     }
 
-    // 3️⃣ Thanh toán thành công
+    //Thanh toán thành công
     await Payment.update(
       {
         status: "success",
@@ -208,7 +208,7 @@ module.exports.momoCallback = async (req, res) => {
 
     const now = new Date();
 
-    // 4️⃣ LẤY ROLE ACTIVE HIỆN TẠI (1 user chỉ có 1 role)
+    // LẤY ROLE ACTIVE HIỆN TẠI (1 user chỉ có 1 role)
     const userRole = await UserRole.findOne({
       where: {
         user_id,
@@ -216,7 +216,7 @@ module.exports.momoCallback = async (req, res) => {
       },
     });
 
-    // 5️⃣ CASE 1: CHƯA CÓ ROLE → tạo buyer trước (hiếm)
+    // CHƯA CÓ ROLE → tạo buyer trước (hiếm)
     if (!userRole) {
       const expire = new Date(now);
       expire.setDate(now.getDate() + duration);
@@ -232,7 +232,7 @@ module.exports.momoCallback = async (req, res) => {
       return res.redirect("http://localhost:5173/payment-success");
     }
 
-    // 6️⃣ CASE 2: ĐÃ LÀ SELLER → GIA HẠN
+    //  CASE 2: ĐÃ LÀ SELLER → GIA HẠN
     if (userRole.role_id === 2) {
       const currentExpire = userRole.expire_at
         ? new Date(userRole.expire_at)
@@ -250,7 +250,7 @@ module.exports.momoCallback = async (req, res) => {
       );
     }
 
-    // 7️⃣ CASE 3: ĐANG LÀ BUYER → UPDATE THÀNH SELLER
+    //ĐANG LÀ BUYER → UPDATE THÀNH SELLER
     if (userRole.role_id === 1) {
       const expire = new Date(now);
       expire.setDate(now.getDate() + duration);

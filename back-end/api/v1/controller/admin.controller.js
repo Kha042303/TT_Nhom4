@@ -1,11 +1,10 @@
 const db = require("../models");
 const User = db.User;
-
-// Thêm các model cần thiết vào phần require ở đầu file nếu chưa có
 const Post = require("../models/posts.model.js");
 const Book = require("../models/books.model.js");
 const Report = require("../models/report.model.js");
 const Payment = require("../models/payment.model");
+const {  UserRole, Role } = require("../models"); // sửa đúng path theo project bạn
 
 // GET /api/v1/admin/dashboard/stats
 module.exports.getDashboardStats = async (req, res) => {
@@ -38,20 +37,40 @@ module.exports.getDashboardStats = async (req, res) => {
   }
 };
 // GET /admin/users?page=&limit=
+
 module.exports.getAdminUsers = async (req, res) => {
   try {
     let { page = 1, limit = 10 } = req.query;
 
-    page = parseInt(page);
-    limit = parseInt(limit);
+    page = parseInt(page, 10);
+    limit = parseInt(limit, 10);
     const offset = (page - 1) * limit;
 
     const { rows, count } = await User.findAndCountAll({
       where: { deleted: "false" },
-      attributes: ["user_id", "full_name", "email", "created_at", "status"],
+
+      attributes: { exclude: ["password"] }, 
+      include: [
+        {
+          model: UserRole,
+          as: "user_roles", 
+          required: false,
+          attributes: ["id", "user_id", "role_id", "start_at", "expire_at", "is_active"],
+          include: [
+            {
+              model: Role,
+              as: "role", 
+              required: false,
+              attributes: ["role_id", "role_name", "description"],
+            },
+          ],
+        },
+      ],
+
       order: [["created_at", "DESC"]],
       limit,
       offset,
+      distinct: true,
     });
 
     return res.json({

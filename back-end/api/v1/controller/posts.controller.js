@@ -25,7 +25,7 @@ module.exports.index = async (req, res) => {
       order: [["post_id", "DESC"]],
     };
 
-    // filter status (admin dùng)
+    // filter status
     if (req.query.status) {
       find.where.status = req.query.status;
     }
