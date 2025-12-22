@@ -1,3 +1,4 @@
+// chat.model.js
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../../../config/database.js");
 
@@ -11,8 +12,24 @@ const Chat = sequelize.define(
     },
     message: {
       type: DataTypes.TEXT("long"),
-      allowNull: false,
+      allowNull: true,
     },
+    images: {
+      type: DataTypes.TEXT("long"),
+      allowNull: true,
+      get() {
+        const raw = this.getDataValue("images");
+        try {
+          return raw ? JSON.parse(raw) : [];
+        } catch {
+          return [];
+        }
+      },
+      set(val) {
+        this.setDataValue("images", JSON.stringify(val || []));
+      },
+    },
+
     sent_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
@@ -37,14 +54,8 @@ const Chat = sequelize.define(
 );
 
 Chat.associate = (models) => {
-  Chat.belongsTo(models.User, {
-    foreignKey: "sender_id",
-    as: "sender",
-  });
-
-  Chat.belongsTo(models.User, {
-    foreignKey: "receiver_id",
-    as: "receiver",
-  });
+  Chat.belongsTo(models.User, { foreignKey: "sender_id", as: "sender" });
+  Chat.belongsTo(models.User, { foreignKey: "receiver_id", as: "receiver" });
 };
+
 module.exports = Chat;
