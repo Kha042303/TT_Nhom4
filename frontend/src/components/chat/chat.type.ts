@@ -14,4 +14,5 @@ export type Message = {
   text?: string;
   time: string;
   image?: string;
+  images?: string[]; 
 };
