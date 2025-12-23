@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import  { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import Header from "../components/layout/Header";
 import { useAuth } from "../context/AuthContext";
@@ -6,7 +6,6 @@ import { useAuth } from "../context/AuthContext";
 import ChatSidebar from "../components/chat/ChatSidebar";
 import ChatHeader from "../components/chat/ChatHeader";
 import ChatMessages from "../components/chat/ChatMessages";
-// ❌ bỏ ChatComposer vì bạn muốn icon nằm ngay thanh nhập ở trang này
 // import ChatComposer from "../components/chat/ChatComposer";
 
 import type { Contact, Message } from "../components/chat/chat.type";

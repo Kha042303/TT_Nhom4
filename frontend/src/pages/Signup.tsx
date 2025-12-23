@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { registerApi } from "../lib/auth";
+import { registerApi } from "../../src/lib/auth";
 import Header from "../components/layout/Header";
 import { useAuth } from "../context/AuthContext";
 

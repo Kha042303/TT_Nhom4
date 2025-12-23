@@ -36,8 +36,7 @@ module.exports.getDashboardStats = async (req, res) => {
     });
   }
 };
-// GET /admin/users?page=&limit=
-
+ // GET /admin/users?page=&limit=
 module.exports.getAdminUsers = async (req, res) => {
   try {
     let { page = 1, limit = 10 } = req.query;
@@ -66,13 +65,11 @@ module.exports.getAdminUsers = async (req, res) => {
           ],
         },
       ],
-
       order: [["created_at", "DESC"]],
       limit,
       offset,
       distinct: true,
     });
-
     return res.json({
       code: 200,
       data: rows,

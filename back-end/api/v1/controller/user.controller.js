@@ -2,7 +2,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-
+const sendMail = require("../../../helpers/sendMail.js");
 const User = require("../models/user.model.js");
 const Session = require("../models/sesion.model.js");
 const db = require("../models");
@@ -14,7 +14,7 @@ const { Op } = require("sequelize");
 const ACCESS_TOKEN_TTL = "30m";
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
 
-// =================== REGISTER ===================
+// register
 module.exports.register = async (req, res) => {
   try {
     const { full_name, email, password } = req.body;
@@ -54,7 +54,7 @@ module.exports.register = async (req, res) => {
   }
 };
 
-// =================== LOGIN ===================
+// login
 module.exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -210,7 +210,7 @@ module.exports.login = async (req, res) => {
 };
 
 
-// =================== LOGOUT ===================
+//logout
 module.exports.logout = async (req, res) => {
   try {
     const token = req.cookies?.refreshToken;
@@ -236,8 +236,7 @@ module.exports.logout = async (req, res) => {
     return res.json({ code: 500, message: "Lỗi server" });
   }
 };
-
-// =================== REFRESH TOKEN ===================
+//refresh token
 module.exports.refreshToken = async (req, res) => {
   try {
     const token = req.cookies?.refreshToken;
@@ -275,7 +274,7 @@ module.exports.refreshToken = async (req, res) => {
   }
 };
 
-// =================== GET PROFILE ===================
+//get profile
 module.exports.getProfile = async (req, res) => {
   try {
     const userId = req.user.user_id;
@@ -295,8 +294,93 @@ module.exports.getProfile = async (req, res) => {
     return res.json({ code: 500, message: "Lỗi server" });
   }
 };
+//forgot password
+module.exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body; 
+    if (!email) return res.json({ code: 400, message: "Thiếu email" });
 
-// =================== GET PROFILE BY ID ===================
+    const user = await User.findOne({
+      where: { email, deleted: "false" },
+    });
+
+    if (!user) return res.json({ code: 400, message: "Email không tồn tại" });
+
+    // tạo token (gửi cho client qua email) + hash token (lưu DB)
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
+
+    await User.update(
+      {
+        password_reset_token: hashedToken,
+        password_reset_expires: expires,
+      },
+      { where: { user_id: user.user_id } }
+    );
+
+    // Link nên trỏ về FE (trang nhập mật khẩu mới), FE sẽ gọi API /reset-password kèm token
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+const link = `${clientUrl}/reset-password?token=${resetToken}`;
+
+
+    const html = `
+      <p>Xin vui lòng click vào link dưới đây để thay đổi mật khẩu.</p>
+      <p>Link này sẽ hết hạn sau <b>15 phút</b>.</p>
+      <a href="${link}">Click here</a>
+    `;
+
+    const rs = await sendMail({ email, html });
+
+    return res.json({
+      code: 200,
+      message: "Đã gửi email đặt lại mật khẩu",
+      data: rs,
+    });
+  } catch (error) {
+    console.log("FORGOT PASSWORD ERROR:", error);
+    return res.json({ code: 500, message: "Lỗi server" });
+  }
+};
+// reset password
+module.exports.resetPassword = async (req, res) => {
+  try {
+    const { password, token } = req.body;
+    if (!password || !token)
+      return res.json({ code: 400, message: "Thiếu password hoặc token" });
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({
+      where: {
+        deleted: "false",
+        password_reset_token: hashedToken,
+        password_reset_expires: { [Op.gt]: new Date() },
+      },
+    });
+
+    if (!user) return res.json({ code: 400, message: "Token không hợp lệ hoặc đã hết hạn" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    user.password = hashedPassword;
+    user.password_reset_token = null;
+    user.password_reset_expires = null;
+
+    await user.save();
+
+    return res.json({ code: 200, message: "Đổi mật khẩu thành công" });
+  } catch (error) {
+    console.log("RESET PASSWORD ERROR:", error);
+    return res.json({ code: 500, message: "Lỗi server" });
+  }
+};
+
+// get profile by id
 module.exports.getProfileById = async (req, res) => {
   try {
     const id = req.params.id;
@@ -317,7 +401,7 @@ module.exports.getProfileById = async (req, res) => {
   }
 };
 
-// =================== GET ALL USERS ===================
+// get all users (except admin and self)
 module.exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({
@@ -356,7 +440,7 @@ module.exports.getAllUsers = async (req, res) => {
 };
 
 
-// =================== EDIT PROFILE ===================
+// edit profile
 module.exports.editProfile = async (req, res) => {
   try {
     const userId = req.user.user_id;

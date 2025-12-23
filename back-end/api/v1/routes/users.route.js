@@ -13,7 +13,10 @@ router.post("/login", userController.login);
 
 // Đăng xuất tài khoản
 router.post("/logout", auth, userController.logout);
-
+// quên mật khẩu
+router.post("/forgot-password", userController.forgotPassword);
+// Đặt lại mật khẩu
+router.post("/reset-password", userController.resetPassword);
 // Lấy thông tin người dùng hiện tại (CÓ AUTH)
 router.get("/profile", auth, userController.getProfile);
 

@@ -28,6 +28,8 @@ import AdminBooks from "./pages/admin/Books";
 import AdminPosts from "./pages/admin/Posts";
 import AdminPayments from "./pages/admin/Payments";
 import AdminReports from "./pages/admin/Reports";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 export default function App() {
   return (
@@ -65,6 +67,9 @@ export default function App() {
               <Route path="payments" element={<AdminPayments />} />
               <Route path="reports" element={<AdminReports />} />
             </Route>
+            <Route path="/forgot" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
 
             <Route path="/sell" element={<SellBook />} />
             <Route path="/about" element={<About />} />
