@@ -17,6 +17,7 @@ import ReportPage from "./pages/ReportPage";
 import CommunityPage from "./pages/CommunityPage";
 import UserInfoPage from "./pages/UserInfoPage";
 import BookDetailPage from "./pages/BookDetailPage";
+import UpgradeSellerPage from "./pages/UpgradeSellerPage";
 
 // Protected pages
 import Logout from "./pages/Logout";
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="/community" element={<CommunityPage />} />
           <Route path="/user/:id" element={<UserInfoPage />} />
           <Route path="/book-detail/:id" element={<BookDetailPage />} />
+          <Route path="/upgrade" element={<UpgradeSellerPage />} />
 
           {/* PROTECTED */}
           <Route
