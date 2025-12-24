@@ -10,7 +10,6 @@ import Footer from "../components/layout/Footer";
 import { profileApi, type User } from "../api/auth.api";
 
 export default function ReportPage() {
-  // ===== auth giống HomePage =====
   const [user, setUser] = useState<User | null>(() => {
     const raw = localStorage.getItem("user");
     return raw ? (JSON.parse(raw) as User) : null;
@@ -45,14 +44,12 @@ export default function ReportPage() {
 
       <main className="mx-auto max-w-6xl px-4 py-8">
         <div className="mt-6 grid gap-8 lg:grid-cols-12">
-          {/* LEFT */}
           <div className="lg:col-span-4">
             <SupportSidebar />
           </div>
 
-          {/* RIGHT */}
           <div className="lg:col-span-8">
-            <ReportIssueForm />
+            <ReportIssueForm defaultEmail={(user as any)?.email || ""} />
           </div>
         </div>
       </main>
