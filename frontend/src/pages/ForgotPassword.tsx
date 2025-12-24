@@ -1,28 +1,39 @@
+// src/pages/ForgotPassword.tsx
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 import Header from "../components/layout/Header";
-import { useAuth } from "../context/AuthContext";
 import { forgotPasswordApi } from "../api/user.api";
 
 export default function ForgotPassword() {
-  const { user, loading } = useAuth();
+  const user = null;
+  const loading = false;
+
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const mail = email.trim();
+    if (!mail) return;
+
     setSubmitting(true);
     try {
-      const rs = await forgotPasswordApi(email);
+      const rs: any = await forgotPasswordApi(mail);
 
-      if (rs?.code !== 200) {
+      const ok =
+        rs?.code === 200 ||
+        rs?.success === true ||
+        rs?.status === "ok";
+
+      if (!ok) {
         toast.error(rs?.message || "Gửi email thất bại");
         return;
       }
 
-      toast.success("Đã gửi email! Vui lòng kiểm tra hộp thư.");
+      toast.success(rs?.message || "Đã gửi email! Vui lòng kiểm tra hộp thư.");
       setEmail("");
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || "Lỗi");

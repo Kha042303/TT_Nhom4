@@ -5,6 +5,7 @@ import type { Socket } from "socket.io-client";
 
 export interface UserType {
   user_id: number;
+  email: string;
   full_name: string;
 }
 

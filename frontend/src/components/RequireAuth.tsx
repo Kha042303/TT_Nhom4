@@ -1,13 +1,20 @@
 // src/components/RequireAuth.tsx
 import React from "react";
-import { Navigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { Navigate, useLocation } from "react-router-dom";
+
+function getToken() {
+  return (
+    localStorage.getItem("token") ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("access_token") ||
+    ""
+  );
+}
 
 export default function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const location = useLocation();
+  const token = getToken();
 
-  if (loading) return <div className="p-6">Loading...</div>;
-  if (!user) return <Navigate to="/signin" replace />;
-
+  if (!token) return <Navigate to="/signin" replace state={{ from: location }} />;
   return <>{children}</>;
 }

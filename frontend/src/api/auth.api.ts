@@ -120,17 +120,20 @@ export async function logoutApi() {
   }
 }
 
-// ✅ Đăng ký
-export async function registerApi(payload: {
+export type RegisterPayload = {
   full_name?: string;
   email: string;
   password: string;
   phone?: string;
   address?: string;
-}) {
-  return apiFetch("/user/register", {
+};
+
+export async function registerApi(payload: RegisterPayload) {
+  // Nếu backend của bạn dùng endpoint khác (vd: "/user/signup") thì đổi lại tại đây
+  const data: any = await apiFetch("/user/register", {
     method: "POST",
     body: JSON.stringify(payload),
-
   });
+
+  return data;
 }

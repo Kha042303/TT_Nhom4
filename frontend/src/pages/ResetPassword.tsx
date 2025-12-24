@@ -2,14 +2,14 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-
 import Header from "../components/layout/Header";
-import { useAuth } from "../context/AuthContext";
 import { resetPasswordApi } from "../api/user.api";
 
 export default function ResetPassword() {
-  const { user, loading } = useAuth();
   const nav = useNavigate();
+
+  const user = null;
+  const loading = false;
 
   const [searchParams] = useSearchParams();
   const params = useParams<{ token?: string }>();
@@ -33,12 +33,18 @@ export default function ResetPassword() {
     try {
       const res: any = await resetPasswordApi(password, token);
 
-      if (res?.code && res.code !== 200) {
+      const ok =
+        res?.code === 200 ||
+        res?.success === true ||
+        res?.status === "ok" ||
+        !!res?.message;
+
+      if (!ok) {
         toast.error(res?.message || "Đổi mật khẩu thất bại");
         return;
       }
 
-      toast.success("Đổi mật khẩu thành công! Mời bạn đăng nhập.");
+      toast.success(res?.message || "Đổi mật khẩu thành công! Mời bạn đăng nhập.");
       nav("/signin", { replace: true });
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || "Đổi mật khẩu thất bại");

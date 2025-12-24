@@ -1,9 +1,23 @@
+// src/pages/ContactPage.tsx
+import { useEffect, useState, type ReactNode } from "react";
 import ContactForm from "../components/contact/ContactForm";
 import { Mail, MapPin, Phone } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+
+// ✅ auth theo API bạn đã gửi
+import { profileApi, type User } from "../api/auth.api";
+
 // ✅ ĐỔI PATH cho đúng file Header/Footer bạn đang có
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+
+function safeGetTokenFromStorage() {
+  return (
+    localStorage.getItem("token") ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("access_token") ||
+    ""
+  );
+}
 
 export default function ContactPage() {
   // UI-only: sau này nối API thì thay bằng data từ BE
@@ -22,7 +36,37 @@ export default function ContactPage() {
     "Thanh toán",
     "Góp ý khác",
   ];
-  const { user, loading } = useAuth();
+
+  // ✅ thay useAuth bằng state local theo api/auth.api.ts
+  const [user, setUser] = useState<User | null>(() => {
+    const raw = localStorage.getItem("user");
+    return raw ? (JSON.parse(raw) as User) : null;
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const token = safeGetTokenFromStorage();
+
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const u = await profileApi();
+        setUser(u);
+        localStorage.setItem("user", JSON.stringify(u));
+      } catch {
+        setUser(null);
+        localStorage.removeItem("user");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
   return (
     <>
       <Header user={user} loading={loading} />
@@ -130,9 +174,9 @@ function InfoRow({
   title,
   desc,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
-  desc: React.ReactNode;
+  desc: ReactNode;
 }) {
   return (
     <div className="flex gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

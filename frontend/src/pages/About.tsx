@@ -1,7 +1,8 @@
 // src/pages/About.tsx
+import { useEffect, useState } from "react";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
-import { useAuth } from "../context/AuthContext";
+import { profileApi, type User } from "../api/auth.api";
 import {
   BookOpen,
   Globe,
@@ -17,9 +18,44 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+function safeGetTokenFromStorage() {
+  return (
+    localStorage.getItem("token") ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("access_token") ||
+    ""
+  );
+}
 
 export default function About() {
-  const { user, loading } = useAuth();
+  // ✅ auth theo API bạn đã gửi (không dùng AuthContext)
+  const [user, setUser] = useState<User | null>(() => {
+    const raw = localStorage.getItem("user");
+    return raw ? (JSON.parse(raw) as User) : null;
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const token = safeGetTokenFromStorage();
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const u = await profileApi();
+        setUser(u);
+        localStorage.setItem("user", JSON.stringify(u));
+      } catch {
+        setUser(null);
+        localStorage.removeItem("user");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -65,7 +101,9 @@ export default function About() {
             <div className="mt-8 flex gap-14">
               <div>
                 <div className="text-2xl font-extrabold text-sky-600">5000+</div>
-                <div className="mt-1 text-xs text-slate-500">Thành viên hoạt động</div>
+                <div className="mt-1 text-xs text-slate-500">
+                  Thành viên hoạt động
+                </div>
               </div>
               <div>
                 <div className="text-2xl font-extrabold text-sky-600">12000+</div>
@@ -127,7 +165,9 @@ export default function About() {
         {/* HOW IT WORKS */}
         <section className="pt-6">
           <div className="text-center">
-            <h2 className="text-2xl md:text-3xl font-extrabold">Cách Thức Hoạt Động</h2>
+            <h2 className="text-2xl md:text-3xl font-extrabold">
+              Cách Thức Hoạt Động
+            </h2>
             <p className="mt-3 text-sm text-slate-500 max-w-2xl mx-auto">
               Đơn giản, minh bạch và hoàn toàn miễn phí. Hãy bắt đầu hành trình
               trao đổi sách của bạn chỉ với 3 bước.
@@ -154,7 +194,7 @@ export default function About() {
 
           <div className="mt-10 flex justify-center">
             <Link
-              to="/HomePage"
+              to="/"
               className="inline-flex items-center gap-2 rounded-xl bg-sky-500 text-white px-6 py-3 font-semibold shadow hover:bg-sky-600"
             >
               Tham Gia Ngay <ArrowRight size={18} />

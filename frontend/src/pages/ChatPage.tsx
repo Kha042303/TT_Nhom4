@@ -1,18 +1,16 @@
-import  { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
-import Header from "../components/layout/Header";
-import { useAuth } from "../context/AuthContext";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
+import Header from "../components/layout/Header";
 import ChatSidebar from "../components/chat/ChatSidebar";
 import ChatHeader from "../components/chat/ChatHeader";
 import ChatMessages from "../components/chat/ChatMessages";
-// import ChatComposer from "../components/chat/ChatComposer";
-
 import type { Contact, Message } from "../components/chat/chat.type";
 
-// ✅ chỉnh import socket theo project của bạn
 import { socket } from "../../socket";
 
+import { apiFetch } from "../api/http";
+import { profileApi, type User } from "../api/auth.api";
 import {
   createChatApi,
   type MessageType as ApiMessageType,
@@ -41,10 +39,59 @@ function uiAvatarForName(name: string) {
 }
 
 export default function ChatPage() {
-  const { user, loading } = useAuth() as any;
+  const nav = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
-  // ✅ token: nếu AuthContext không có token thì fallback localStorage
-  const token: string = (user?.token as string) || safeGetTokenFromStorage();
+  // ✅ sellerId từ BookDetail: /chat?sellerId=11
+  const sellerIdFromQueryRaw = searchParams.get("sellerId");
+  const preferredContactId = (() => {
+    const n = Number(sellerIdFromQueryRaw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  })();
+
+  // ✅ auth theo API bạn gửi (không dùng AuthContext)
+  const [user, setUser] = useState<User | null>(() => {
+    const raw = localStorage.getItem("user");
+    return raw ? (JSON.parse(raw) as User) : null;
+  });
+  const [loading, setLoading] = useState(true);
+
+  const token = safeGetTokenFromStorage();
+
+  useEffect(() => {
+    (async () => {
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+
+        // ✅ giữ lại đường dẫn để login xong quay lại đúng chat
+        const next = encodeURIComponent(location.pathname + location.search);
+        nav(`/signin?next=${next}`, { replace: true });
+        return;
+      }
+
+      try {
+        const u = await profileApi();
+        setUser(u);
+        localStorage.setItem("user", JSON.stringify(u));
+      } catch {
+        setUser(null);
+        localStorage.removeItem("user");
+
+        const next = encodeURIComponent(location.pathname + location.search);
+        nav(`/signin?next=${next}`, { replace: true });
+      } finally {
+        setLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ===== Guards =====
+  const myUserId: number | null = user?.user_id ? Number(user.user_id) : null;
+
+  // ✅ nếu bạn có Vite proxy thì để "" hoặc window.location.origin đều được
   const API_BASE = "http://localhost:3000";
 
   // ===== UI state =====
@@ -66,9 +113,6 @@ export default function ChatPage() {
   const imagePickerRef = useRef<HTMLInputElement>(null);
   const attachPickerRef = useRef<HTMLInputElement>(null);
 
-  // ===== Guards =====
-  const myUserId: number | null = user?.user_id ? Number(user.user_id) : null;
-
   const chatApi = useMemo(() => {
     if (!myUserId || !token) return null;
     return createChatApi({
@@ -79,10 +123,16 @@ export default function ChatPage() {
     });
   }, [API_BASE, myUserId, token]);
 
+  // ✅ activeContact: không fallback bừa khi activeContactId đã set
   const activeContact = useMemo(() => {
     if (!contacts.length) return null;
-    const found = contacts.find((c) => c.id === activeContactId);
-    return found || contacts[0];
+
+    if (activeContactId != null) {
+      const found = contacts.find((c) => c.id === activeContactId);
+      return found || null;
+    }
+
+    return contacts[0];
   }, [contacts, activeContactId]);
 
   const filteredContacts = useMemo(() => {
@@ -98,8 +148,7 @@ export default function ChatPage() {
 
     const onScroll = () => {
       const threshold = 80;
-      const nearBottom =
-        el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
       setAutoScroll(nearBottom);
     };
 
@@ -116,7 +165,7 @@ export default function ChatPage() {
 
   // ===== Connect socket + load users =====
   useEffect(() => {
-    if (!chatApi) return;
+    if (!chatApi || !myUserId) return;
 
     chatApi.connectRealtime();
 
@@ -125,20 +174,31 @@ export default function ChatPage() {
       .then((list: ApiUserType[]) => {
         const mapped: Contact[] = list
           .filter((u) => Number(u.user_id) !== myUserId)
-          .map((u) => ({
-            id: Number(u.user_id),
-            name: u.full_name,
-            avatar: uiAvatarForName(u.full_name),
-            lastMessage: "",
-            time: "",
-            unread: false,
-            active: false,
-          }));
+          .map((u) => {
+            const name = u.full_name || u.email || `User ${u.user_id}`;
+            return {
+              id: Number(u.user_id),
+              name,
+              avatar: uiAvatarForName(name),
+              lastMessage: "",
+              time: "",
+              unread: false,
+              active: false,
+            };
+          });
 
         setContacts(mapped);
 
-        if (mapped.length > 0 && activeContactId == null) {
-          setActiveContactId(mapped[0].id);
+        // ✅ Ưu tiên mở đúng sellerId
+        if (mapped.length > 0) {
+          if (
+            preferredContactId &&
+            mapped.some((c) => c.id === preferredContactId)
+          ) {
+            setActiveContactId(preferredContactId);
+          } else if (activeContactId == null) {
+            setActiveContactId(mapped[0].id);
+          }
         }
       })
       .catch(console.error);
@@ -146,11 +206,11 @@ export default function ChatPage() {
     return () => {
       chatApi.disconnectRealtime();
     };
-  }, [chatApi, myUserId, activeContactId]);
+  }, [chatApi, myUserId, preferredContactId]); // ✅ bỏ activeContactId khỏi deps để tránh reload loop
 
   // ===== Load history when change contact =====
   useEffect(() => {
-    if (!chatApi || !activeContact) return;
+    if (!chatApi || !activeContact || !myUserId) return;
 
     chatApi
       .getMessages(activeContact.id)
@@ -160,7 +220,6 @@ export default function ChatPage() {
           const imgs = Array.isArray(m.images) ? m.images : [];
           const resolvedImgs = imgs.map(chatApi.resolveImageSrc);
 
-          //  để tương thích ChatMessages cũ: set cả image (1 ảnh) + images (nhiều ảnh)
           return {
             id: m.chat_id ?? Number(m.sent_at ?? Date.now()),
             from: isMe ? "me" : "other",
@@ -182,7 +241,7 @@ export default function ChatPage() {
 
   // ===== Realtime receive =====
   useEffect(() => {
-    if (!chatApi || !activeContact) return;
+    if (!chatApi || !activeContact || !myUserId) return;
 
     const unsub = chatApi.onReceiverMessage((msg) => {
       if (
@@ -210,14 +269,14 @@ export default function ChatPage() {
 
   // ===== Send (TEXT + IMAGE) =====
   const handleSend = async () => {
-    if (!chatApi || !activeContact) return;
+    if (!chatApi || !activeContact || !myUserId) return;
 
     const text = input.trim();
     if (!text && selectedFiles.length === 0) return;
 
     setInput("");
 
-    // ✅ Nếu có ảnh => upload multipart để BE trả URL /images/chat/...
+    // ✅ Nếu có ảnh => upload multipart qua apiFetch (/api/v1/chat/send)
     if (selectedFiles.length > 0) {
       try {
         const form = new FormData();
@@ -227,16 +286,16 @@ export default function ChatPage() {
 
         setSelectedFiles([]);
 
-        const res = await axios.post(`${API_BASE}/api/v1/chat/send`, form, {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await apiFetch<any>("/chat/send", {
+          method: "POST",
+          body: form,
         });
 
-        const saved = res.data?.data; // { images: ["/images/chat/..."], message, ... }
+        const saved = res?.data;
 
         const imgs: string[] = Array.isArray(saved?.images) ? saved.images : [];
         const resolvedImgs = imgs.map(chatApi.resolveImageSrc);
 
-        // append để thấy ảnh mình gửi ngay
         const uiMsg: Message = {
           id: saved?.chat_id ?? Date.now(),
           from: "me",
@@ -248,12 +307,11 @@ export default function ChatPage() {
 
         setMessages((prev) => [...prev, uiMsg]);
 
-        // realtime cho người nhận
         socket.emit("sendMessage", {
           sender_id: saved?.sender_id ?? myUserId,
           receiver_id: saved?.receiver_id ?? activeContact.id,
           message: saved?.message ?? "",
-          images: imgs, // gửi path gốc /images/... để receiver tự resolve
+          images: imgs,
           sent_at: saved?.sent_at,
           chat_id: saved?.chat_id,
         });
@@ -265,11 +323,11 @@ export default function ChatPage() {
       }
     }
 
-    // ✅ Text-only: dùng flow cũ trong chatApi (persistTextViaHttp + socket)
+    // ✅ Text-only: dùng flow cũ trong chatApi
     const sent = await chatApi.sendMessage({
       receiverId: activeContact.id,
       text,
-      files: [], // không dùng
+      files: [],
       persistTextViaHttp: true,
     });
 
@@ -289,14 +347,12 @@ export default function ChatPage() {
   if (!token) return null;
 
   return (
-    // ✅ khoá scroll của page
     <div className="h-screen overflow-hidden bg-slate-50 text-slate-900">
       <Header user={user} loading={loading} />
 
       <main className="mx-auto max-w-6xl px-3 py-3 h-[calc(100vh-80px)] overflow-hidden">
         <div className="rounded-2xl border bg-white shadow-sm overflow-hidden h-full">
           <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] h-full overflow-hidden">
-            {/* Sidebar: vẫn luôn nhìn thấy */}
             <div className="h-full overflow-hidden">
               <ChatSidebar
                 search={search}
@@ -307,18 +363,14 @@ export default function ChatPage() {
               />
             </div>
 
-            {/* Chat area */}
             <section className="flex flex-col h-full overflow-hidden">
               {activeContact && <ChatHeader contact={activeContact} />}
 
-              {/* ✅ CHỈ messages scroll */}
               <div ref={scrollerRef} className="flex-1 overflow-y-auto">
-                
-                <ChatMessages dateLabel="Hôm nay" messages={messages}  />
+                <ChatMessages dateLabel="Hôm nay" messages={messages} />
                 <div ref={bottomRef} />
               </div>
 
-              {/* ✅ Preview ảnh (không có button "Chọn ảnh") */}
               {selectedFiles.length > 0 && (
                 <div className="px-4 pt-3 pb-2 border-t bg-white">
                   <div className="flex gap-2 overflow-x-auto">
@@ -326,21 +378,17 @@ export default function ChatPage() {
                       <div key={i} className="relative shrink-0">
                         <img
                           src={URL.createObjectURL(f)}
-                          className="w-16 h-16 rounded-xl object-cover "
+                          className="w-16 h-16 rounded-xl object-cover"
                           alt="preview"
                           onLoad={(e) =>
-                            URL.revokeObjectURL(
-                              (e.target as HTMLImageElement).src
-                            )
+                            URL.revokeObjectURL((e.target as HTMLImageElement).src)
                           }
                         />
                         <button
                           type="button"
                           className="absolute -top-2 -right-2 bg-black/70 text-white w-6 h-6 rounded-full text-xs"
                           onClick={() =>
-                            setSelectedFiles((prev) =>
-                              prev.filter((_, idx) => idx !== i)
-                            )
+                            setSelectedFiles((prev) => prev.filter((_, idx) => idx !== i))
                           }
                           title="Xoá"
                         >
@@ -352,9 +400,7 @@ export default function ChatPage() {
                 </div>
               )}
 
-              {/* ✅ INPUT BAR: 2 icon ở đây */}
               <div className="border-t bg-white px-4 py-3 flex items-center gap-2">
-                {/* hidden picker ảnh */}
                 <input
                   ref={imagePickerRef}
                   type="file"
@@ -363,13 +409,11 @@ export default function ChatPage() {
                   style={{ display: "none" }}
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
-                    if (files.length > 0)
-                      setSelectedFiles((prev) => [...prev, ...files]);
+                    if (files.length > 0) setSelectedFiles((prev) => [...prev, ...files]);
                     e.target.value = "";
                   }}
                 />
 
-                {/* hidden picker đính kèm (tạm để chọn ảnh luôn, muốn file khác đổi accept) */}
                 <input
                   ref={attachPickerRef}
                   type="file"
@@ -377,14 +421,11 @@ export default function ChatPage() {
                   style={{ display: "none" }}
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
-                    // hiện tại xử lý như ảnh (nếu bạn muốn file khác thì mình sẽ đổi logic)
-                    if (files.length > 0)
-                      setSelectedFiles((prev) => [...prev, ...files]);
+                    if (files.length > 0) setSelectedFiles((prev) => [...prev, ...files]);
                     e.target.value = "";
                   }}
                 />
 
-                {/* icon ảnh */}
                 <button
                   type="button"
                   className="p-2 rounded-full hover:bg-slate-100"
@@ -411,7 +452,6 @@ export default function ChatPage() {
                   </svg>
                 </button>
 
-                {/* icon kẹp giấy */}
                 <button
                   type="button"
                   className="p-2 rounded-full hover:bg-slate-100"
@@ -429,18 +469,21 @@ export default function ChatPage() {
                   </svg>
                 </button>
 
-                {/* input */}
                 <input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void handleSend();
+                    }
+                  }}
                   className="flex-1 px-4 py-3 bg-slate-100 rounded-full outline-none"
                   placeholder="Nhập tin nhắn..."
                 />
 
-                {/* send */}
                 <button
-                  onClick={handleSend}
+                  onClick={() => void handleSend()}
                   className="bg-blue-600 text-white px-4 py-2 rounded-full"
                 >
                   Gửi

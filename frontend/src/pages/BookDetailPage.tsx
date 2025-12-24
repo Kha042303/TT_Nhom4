@@ -1,67 +1,212 @@
+// src/pages/BookDetailPage.tsx
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 
-// import KhungAnh from "../components/book-detail/KhungAnh";
-// import TinhTrangSach from "../components/book-detail/TinhTrangSach";
-// import TTSeller from "../components/book-detail/TTSeller";
-// import ThongTinSach from "../components/book-detail/ThongTinSach";
-// import MotaChiTiet from "../components/book-detail/MotaChiTiet";
-// import SachTuongTu from "../components/book-detail/SachTuongTu";
-// import type { BookDetailUI, SimilarBookUI } from "../components/book-detail/types";
+import Header from "../components/layout/Header";
+import Footer from "../components/layout/Footer";
 
-// // ⚠️ đổi path theo dự án bạn
-// import Header from "../components/layout/Header";
-// import Footer from "../components/layout/Footer";
+import KhungAnh from "../components/book-detail/KhungAnh";
+import TinhTrangSach from "../components/book-detail/TinhTrangSach";
+import TTSeller from "../components/book-detail/TTSeller";
+import ThongTinSach from "../components/book-detail/ThongTinSach";
+import MotaChiTiet from "../components/book-detail/MotaChiTiet";
+import SachTuongTu from "../components/book-detail/SachTuongTu";
 
-// export default function BookDetailPage() {
-//   /**
-//    * UI-only, KHÔNG mock data.
-//    * Khi nối API:
-//    * - bạn lấy bookDetail từ BE và truyền vào các component (hoặc dùng state/store).
-//    */
-//   const book: BookDetailUI | undefined = undefined;
-//   const sachtuongtu: SimilarBookUI[] | undefined = undefined;
+import type { BookDetailUI, SimilarBookUI } from "../components/book-detail/types";
 
-//   return (
-//     <div className="min-h-screen bg-slate-50">
-//       <Header user={null as any} loading={false} />
+import { getBookDetailApi, pickBookImages, type Book } from "../api/book.api";
+import { getUserByIdApi, mapUserToSeller, type UserPublic } from "../api/user.api";
 
-//       <main className="mx-auto max-w-6xl px-4 py-6">
+function safeGetTokenFromStorage() {
+  return (
+    localStorage.getItem("token") ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("access_token") ||
+    ""
+  );
+}
 
-//         <div className="mt-6 grid gap-8 lg:grid-cols-12">
-//           {/* LEFT */}
-//           <div className="lg:col-span-7">
-//             <KhungAnh images={book?.images} statusLabel={book?.statusLabel} />
-//           </div>
+export default function BookDetailPage() {
+  const { id } = useParams();
+  const nav = useNavigate();
 
-//           {/* RIGHT */}
-//           <div className="lg:col-span-5 space-y-4">
-//             <TinhTrangSach
-//               badge={book?.badge}
-//               viewsText={book?.viewsText}
-//               title={book?.title}
-//               author={book?.author}
-//               price={book?.price}
-//               oldPrice={book?.oldPrice}
-//               discountPercent={book?.discountPercent}
-//               condition={book?.condition}
-//               location={book?.location}
-//             />
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+  const [bookRaw, setBookRaw] = useState<Book | null>(null);
+  const [sellerUser, setSellerUser] = useState<UserPublic | null>(null);
 
-//             <TTSeller seller={book?.seller} />
+  useEffect(() => {
+    if (!id) return;
 
-//             <ThongTinSach meta={book?.meta} />
-//           </div>
-//         </div>
+    (async () => {
+      setLoading(true);
+      setErr("");
+      setBookRaw(null);
+      setSellerUser(null);
 
-//         <div className="mt-10">
-//           <MotaChiTiet />
-//         </div>
+      try {
+        const b = await getBookDetailApi(id);
+        setBookRaw(b);
 
-//         <div className="mt-12">
-//           <SachTuongTu books={sachtuongtu} />
-//         </div>
-//       </main>
+        if (b?.user_id) {
+          const u = await getUserByIdApi(b.user_id);
+          setSellerUser(u);
+        }
+      } catch (e: any) {
+        setErr(e?.message || "Không tải được chi tiết sách");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [id]);
 
-//       <Footer />
-//     </div>
-//   );
-// }
+  const handleMessageSeller = () => {
+    const sellerId = bookRaw?.user_id;
+    if (!sellerId) return;
+
+    const next = `/chat?sellerId=${sellerId}`;
+    const token = safeGetTokenFromStorage();
+
+    if (!token) {
+      nav(`/signin?next=${encodeURIComponent(next)}`, { replace: true });
+      return;
+    }
+
+    nav(next);
+  };
+
+  const bookUI: BookDetailUI = useMemo(() => {
+    if (!bookRaw) return {};
+
+    // ảnh
+    const images = pickBookImages(bookRaw);
+
+    // tình trạng: BE chưa có field condition => map tạm từ stock/status để KHÔNG còn "—"
+    let condition = "—";
+    if (typeof bookRaw.stock === "number") {
+      condition = bookRaw.stock > 0 ? `Còn hàng (${bookRaw.stock})` : "Hết hàng";
+    } else if (bookRaw.status) {
+      condition = bookRaw.status === "active" ? "Đang bán" : "Tạm ẩn";
+    }
+
+    // location: map tạm từ address người bán (nếu có)
+    const location = sellerUser?.address?.trim() ? sellerUser.address.trim() : "—";
+
+    // seller card
+    const seller = mapUserToSeller(sellerUser);
+
+    return {
+      title: bookRaw.title,
+      author: bookRaw.author || "—",
+      badge: bookRaw.category || "Danh mục",
+      viewsText: "— lượt xem",
+
+      price: typeof bookRaw.price === "number" ? bookRaw.price : undefined,
+      oldPrice: undefined,
+      discountPercent: undefined,
+
+      condition,
+      location,
+
+      statusLabel: bookRaw.status === "active" ? "ĐANG BÁN" : "TẠM ẨN",
+      images,
+
+      // meta cho ThongTinSach (nếu component bạn bắt buộc)
+      meta: {
+        publisher: bookRaw.publisher || "—",
+        year: "—",
+        pages: "—",
+        language: "Tiếng Việt",
+      },
+
+      seller,
+    };
+  }, [bookRaw, sellerUser]);
+
+  const similarBooks: SimilarBookUI[] = useMemo(
+    () => [
+      { title: "Sách tương tự 1", author: "—", price: 50000, condition: "Mới 90%", location: "—" },
+      { title: "Sách tương tự 2", author: "—", price: 65000, condition: "Mới 95%", location: "—" },
+      { title: "Sách tương tự 3", author: "—", price: 70000, condition: "Khá", location: "—" },
+      { title: "Sách tương tự 4", author: "—", price: 55000, condition: "Cũ", location: "—" },
+      { title: "Sách tương tự 5", author: "—", price: 80000, condition: "Mới 100%", location: "—" },
+    ],
+    []
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <Header user={null as any} loading={false} />
+
+      <main className="mx-auto max-w-6xl px-4 pb-12">
+        {/* Breadcrumb */}
+        <div className="flex flex-wrap items-center gap-2 py-4 text-sm text-slate-500">
+          <Link to="/" className="hover:text-slate-700">
+            Trang chủ
+          </Link>
+          <ChevronRight size={16} className="text-slate-400" />
+          <Link to="/books" className="hover:text-slate-700">
+            Sách cũ
+          </Link>
+          <ChevronRight size={16} className="text-slate-400" />
+          <span className="text-slate-700 line-clamp-1">
+            {bookUI.title || "Chi tiết sách"}
+          </span>
+        </div>
+
+        {err ? (
+          <div className="rounded-2xl border bg-white p-6 text-red-600">{err}</div>
+        ) : null}
+
+        {/* Top section */}
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="lg:col-span-7">
+            <KhungAnh images={bookUI.images} statusLabel={bookUI.statusLabel} />
+          </div>
+
+          <div className="lg:col-span-5 space-y-4">
+            <TinhTrangSach
+              badge={bookUI.badge}
+              viewsText={bookUI.viewsText}
+              title={bookUI.title}
+              author={bookUI.author}
+              price={bookUI.price}
+              oldPrice={bookUI.oldPrice}
+              discountPercent={bookUI.discountPercent}
+              condition={bookUI.condition}
+              location={bookUI.location}
+            />
+
+            {/* Nút nhắn tin */}
+            <TTSeller
+              seller={bookUI.seller}
+              onMessage={handleMessageSeller}
+              disabled={!bookRaw?.user_id}
+            />
+
+            <ThongTinSach meta={bookUI.meta} />
+          </div>
+        </section>
+
+        {/* Description */}
+        <section className="mt-8">
+          <MotaChiTiet />
+
+          {!loading && bookRaw?.description ? (
+            <div className="mt-4 rounded-2xl border bg-white p-6 text-slate-700 leading-relaxed">
+              {bookRaw.description}
+            </div>
+          ) : null}
+        </section>
+
+        {/* Similar */}
+        <section className="mt-10">
+          <SachTuongTu books={similarBooks} />
+        </section>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
