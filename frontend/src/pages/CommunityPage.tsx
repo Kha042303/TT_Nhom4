@@ -1,21 +1,51 @@
-import PostComposer from "../components/community/DangBai";
-import CommunityFeed from "../components/community/DSBaiViet";
-import type { CommunityPost, FeedFilter } from "../components/community/types";
+// src/pages/CommunityFindBookPage.tsx
+import { useEffect, useState } from "react";
 
-// ⚠️ đổi path theo dự án bạn
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+
 import DangBai from "../components/community/DangBai";
 import DSBaiViet from "../components/community/DSBaiViet";
+import type { CommunityPost } from "../components/community/types";
 
-export default function CommunityFindBookPage() {
+import { profileApi, type User } from "../api/auth.api";
+
+export default function CommunityPage() {
+  // ===== auth giống HomePage =====
+  const [user, setUser] = useState<User | null>(() => {
+    const raw = localStorage.getItem("user");
+    return raw ? (JSON.parse(raw) as User) : null;
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const tk =
+        localStorage.getItem("token") || localStorage.getItem("accessToken");
+      if (!tk) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      try {
+        const u = await profileApi();
+        setUser(u);
+        localStorage.setItem("user", JSON.stringify(u));
+      } catch {
+        setUser(null);
+        localStorage.removeItem("user");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
   // UI-only: chưa nối API => không có data
   const posts: CommunityPost[] | undefined = undefined;
-  const activeFilter: FeedFilter = "latest"; // UI-only, chưa làm state
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header user={null as any} loading={false} />
+      <Header user={user as any} loading={loading} />
 
       <main className="mx-auto max-w-6xl px-4 py-8">
         <div className="mx-auto max-w-3xl">

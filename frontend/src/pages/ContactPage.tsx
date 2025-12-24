@@ -136,24 +136,6 @@ export default function ContactPage() {
                   }
                 />
               </div>
-
-              {/* FAQ card (UI-only) */}
-              <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="text-lg font-extrabold text-slate-900">
-                  Câu hỏi thường gặp?
-                </h3>
-                <p className="mt-2 text-slate-600">
-                  Tìm kiếm câu trả lời nhanh chóng cho các vấn đề phổ biến trong
-                  kho kiến thức của chúng tôi.
-                </p>
-
-                <button
-                  type="button"
-                  className="mt-4 inline-flex items-center gap-2 font-semibold text-sky-600 hover:text-sky-700"
-                >
-                  Xem FAQ <span aria-hidden>→</span>
-                </button>
-              </div>
             </div>
 
             {/* RIGHT: FORM */}
