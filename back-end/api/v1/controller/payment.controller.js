@@ -5,26 +5,36 @@ const UserRole = require("../models/user_roles.model");
 
 const crypto = require("crypto");
 const https = require("https");
-
 // Tạo orderId duy nhất
 function generateOrderId() {
   return "ORDER_" + Date.now();
 }
 //POST /api/v1/payment/create
 // Tạo thanh toán MoMo + Lưu FULL payment trước khi thanh toán
-
 module.exports.create = async (req, res) => {
   try {
     const user_id = req.user.user_id;
-    const { role_id, typePayment } = req.body;
-
+    const { role_id, typePayment, amount } = req.body; //nhận amount từ FE
     if (!role_id) {
       return res.status(400).json({
         code: 400,
         message: "role_id là bắt buộc"
       });
     }
-
+    // validate amount
+    if (amount === undefined || amount === null) {
+      return res.status(400).json({
+        code: 400,
+        message: "amount là bắt buộc"
+      });
+    }
+    const parsedAmount = Number(amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({
+        code: 400,
+        message: "amount không hợp lệ"
+      });
+    }
     const role = await Role.findByPk(role_id);
     if (!role) {
       return res.status(404).json({
@@ -32,7 +42,6 @@ module.exports.create = async (req, res) => {
         message: "Role không tồn tại"
       });
     }
-
     // Không cho buyer hoặc admin mua
     if (role.role_id === 1) {
       return res.status(400).json({
@@ -40,7 +49,6 @@ module.exports.create = async (req, res) => {
         message: "Buyer không thể nâng cấp"
       });
     }
-
     if (role.role_name === "admin") {
       return res.status(400).json({
         code: 400,
@@ -48,26 +56,26 @@ module.exports.create = async (req, res) => {
       });
     }
 
-    // Giá seller = 50.000
-    const amount = 50000;
-
     if (typePayment !== "momo") {
       return res.status(400).json({
         code: 400,
         message: "Hệ thống chỉ hỗ trợ thanh toán MoMo"
       });
     }
+    // dùng amount nhận từ FE
+    const finalAmount = parsedAmount;
     const order_id = generateOrderId();
     // LƯU PAYMENT TRƯỚC KHI GỌI MOMO
     const paymentRecord = await Payment.create({
       order_id,
       user_id,
-      amount,
+      amount: finalAmount,
       status: "pending",
       pay_type: "momo",
       extra_data: JSON.stringify({ user_id, role_id }),
       message: "Đang chờ thanh toán"
     });
+
     // TẠO YÊU CẦU MOMO
     const partnerCode = "MOMO";
     const accessKey = "F8BBA842ECF85";
@@ -81,19 +89,20 @@ module.exports.create = async (req, res) => {
     const extraData = JSON.stringify({ user_id, role_id });
 
     const rawSignature =
-      `accessKey=${accessKey}&amount=${amount}&extraData=${extraData}` +
+      `accessKey=${accessKey}&amount=${finalAmount}&extraData=${extraData}` +
       `&ipnUrl=${ipnUrl}&orderId=${order_id}&orderInfo=${orderInfo}` +
       `&partnerCode=${partnerCode}&redirectUrl=${redirectUrl}` +
       `&requestId=${requestId}&requestType=payWithMethod`;
 
-    const signature = crypto.createHmac("sha256", secretKey)
+    const signature = crypto
+      .createHmac("sha256", secretKey)
       .update(rawSignature)
       .digest("hex");
 
     const requestBody = JSON.stringify({
       partnerCode,
       requestId,
-      amount,
+      amount: finalAmount,
       orderId: order_id,
       orderInfo,
       redirectUrl,
@@ -145,24 +154,22 @@ module.exports.create = async (req, res) => {
     });
   }
 };
-  // GET /api/v1/payment/momo-callback
-   //Xử lý thanh toán thành công → Update payment → Update seller role
+
+// GET /api/v1/payment/momo-callback
+//Xử lý thanh toán thành công → Update payment → Update seller role
 module.exports.momoCallback = async (req, res) => {
   try {
     const { resultCode, orderId, extraData, message } = req.query;
-
     //Tìm payment
     const payment = await Payment.findOne({
       where: { order_id: orderId },
     });
-
     if (!payment) {
       return res.status(404).json({
         code: 404,
         message: "Không tìm thấy giao dịch",
       });
     }
-
     // Parse extraData an toàn
     let info = {};
     try {
@@ -170,10 +177,8 @@ module.exports.momoCallback = async (req, res) => {
     } catch {
       info = {};
     }
-
     const user_id = info.user_id || payment.user_id;
     const role_id = info.role_id; // seller role
-
     // Thanh toán thất bại
     if (String(resultCode) !== "0") {
       await Payment.update(
@@ -184,10 +189,8 @@ module.exports.momoCallback = async (req, res) => {
         },
         { where: { order_id: orderId } }
       );
-
       return res.redirect("http://localhost:5173/payment-fail");
     }
-
     //Thanh toán thành công
     await Payment.update(
       {
@@ -197,30 +200,23 @@ module.exports.momoCallback = async (req, res) => {
       },
       { where: { order_id: orderId } }
     );
-
     // Nếu không có role_id → kết thúc
     if (!role_id) {
       return res.redirect("http://localhost:5173/payment-success");
     }
-
     const role = await Role.findByPk(role_id);
     const duration = role?.duration_days || 30;
-
     const now = new Date();
-
-    // LẤY ROLE ACTIVE HIỆN TẠI (1 user chỉ có 1 role)
     const userRole = await UserRole.findOne({
       where: {
         user_id,
         is_active: true,
       },
     });
-
     // CHƯA CÓ ROLE → tạo buyer trước (hiếm)
     if (!userRole) {
       const expire = new Date(now);
       expire.setDate(now.getDate() + duration);
-
       await UserRole.create({
         user_id,
         role_id: 2, // seller
@@ -228,10 +224,8 @@ module.exports.momoCallback = async (req, res) => {
         expire_at: expire,
         is_active: true,
       });
-
       return res.redirect("http://localhost:5173/payment-success");
     }
-
     //  CASE 2: ĐÃ LÀ SELLER → GIA HẠN
     if (userRole.role_id === 2) {
       const currentExpire = userRole.expire_at
@@ -241,7 +235,6 @@ module.exports.momoCallback = async (req, res) => {
       const baseDate = currentExpire > now ? currentExpire : now;
       const newExpire = new Date(baseDate);
       newExpire.setDate(baseDate.getDate() + duration);
-
       await UserRole.update(
         {
           expire_at: newExpire,
@@ -249,12 +242,10 @@ module.exports.momoCallback = async (req, res) => {
         { where: { id: userRole.id } }
       );
     }
-
     //ĐANG LÀ BUYER → UPDATE THÀNH SELLER
     if (userRole.role_id === 1) {
       const expire = new Date(now);
       expire.setDate(now.getDate() + duration);
-
       await UserRole.update(
         {
           role_id: 2, // seller
@@ -264,7 +255,6 @@ module.exports.momoCallback = async (req, res) => {
         { where: { id: userRole.id } }
       );
     }
-
     return res.redirect("http://localhost:5173/payment-success");
   } catch (error) {
     console.log("MOMO CALLBACK ERROR:", error);
@@ -275,8 +265,7 @@ module.exports.momoCallback = async (req, res) => {
     });
   }
 };
-
-  // GET /api/v1/payment
+// GET /api/v1/payment
 module.exports.index = async (req, res) => {
   try {
     const payments = await Payment.findAll({
@@ -300,8 +289,7 @@ module.exports.index = async (req, res) => {
     });
   }
 };
-
-  // GET /api/v1/payment/detail/:id
+// GET /api/v1/payment/detail/:id
 module.exports.detail = async (req, res) => {
   try {
     const id = req.params.id;
@@ -332,7 +320,7 @@ module.exports.detail = async (req, res) => {
     });
   }
 };
-   //PATCH /api/v1/payment/update/:id
+//PATCH /api/v1/payment/update/:id
 module.exports.update = async (req, res) => {
   try {
     const id = req.params.id;
