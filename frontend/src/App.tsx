@@ -36,6 +36,8 @@ import AdminBooks from "./pages/admin/Books";
 import AdminPosts from "./pages/admin/Posts";
 import AdminPayments from "./pages/admin/Payments";
 import AdminReports from "./pages/admin/Reports";
+import PaymentSuccessPage from "./pages/PaymentSuccessPage";
+import PaymentFailPage from "./pages/PaymentFailPage";
 
 export default function App() {
   return (
@@ -63,7 +65,8 @@ export default function App() {
           <Route path="/user/:id" element={<UserInfoPage />} />
           <Route path="/book-detail/:id" element={<BookDetailPage />} />
           <Route path="/upgrade" element={<UpgradeSellerPage />} />
-
+<Route path="/payment-success" element={<PaymentSuccessPage />} />
+      <Route path="/payment-fail" element={<PaymentFailPage />} />
           {/* PROTECTED */}
           <Route
             path="/logout"
