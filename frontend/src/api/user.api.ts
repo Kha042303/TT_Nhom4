@@ -42,34 +42,18 @@ export async function resetPasswordApi(password: string, token: string) {
     body: JSON.stringify({ password, token }),
   });
 }
-
-/** Profile (cần token) */
 export async function getProfileApi() {
-  return apiFetch<any>("/user/profile", { method: "GET" });
+  return apiFetch<any>("/user/profileid", { method: "GET" });
 }
-
-/**
- * Ưu tiên /user/profile/:id nếu có, không có thì fallback /user/list
- */
 export async function getUserByIdApi(userId: number | string): Promise<UserPublic | null> {
   try {
-    const res = await apiFetch<any>(`/user/profile/${userId}`, { method: "GET" });
+    const res = await apiFetch<any>(`/user/profileid/${userId}`, { method: "GET" });
     const u = res?.data ?? res;
-    if (u?.user_id) return u as UserPublic;
-  } catch {
-    // ignore
-  }
-
-  try {
-    const res = await apiFetch<any>(`/user/list`, { method: "GET" });
-    const list: any[] = res?.data ?? [];
-    const found = list.find((x) => String(x?.user_id) === String(userId));
-    return found ? (found as UserPublic) : null;
+    return u?.user_id ? (u as UserPublic) : null;
   } catch {
     return null;
   }
 }
-
 export function mapUserToSeller(u: UserPublic | null) {
   return {
     name: u?.full_name || (u?.user_id ? `User #${u.user_id}` : "Người bán"),
@@ -77,5 +61,11 @@ export function mapUserToSeller(u: UserPublic | null) {
     joinedText: formatJoined(u?.created_at),
     rating: 0,
     reviewCount: 0,
+
+    phone: u?.phone,
+    email: u?.email,
+    address: u?.address,
+    status: u?.status,
   };
 }
+

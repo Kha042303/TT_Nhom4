@@ -90,7 +90,6 @@ export function createChatApi(opts: CreateChatApiOptions) {
     if (!s.connected) s.connect();
     s.on("connect", () => s.emit("addUser", opts.myUserId));
   }
-
   function disconnectRealtime() {
     s.off("connect");
     s.disconnect();
@@ -100,12 +99,10 @@ export function createChatApi(opts: CreateChatApiOptions) {
     s.on("receiverMessage", cb);
     return () => s.off("receiverMessage", cb);
   }
-
   async function listUsers(): Promise<UserType[]> {
     const res = await http.get("/api/v1/user/list");
     return res.data?.data ?? [];
   }
-
   async function getMessages(receiverId: number): Promise<MessageType[]> {
     const res = await http.get(`/api/v1/chat/${receiverId}`);
     const list = res.data?.data ?? [];
@@ -115,49 +112,37 @@ export function createChatApi(opts: CreateChatApiOptions) {
   async function persistTextMessageHttp(receiverId: number, text: string) {
     await http.post("/api/v1/chat/send", { receiver_id: receiverId, message: text });
   }
-
-
   async function sendMessage(input: SendMessageInput): Promise<MessageType> {
     const text = (input.text ?? "").trim();
     const receiverId = input.receiverId;
     const persistTextViaHttp = input.persistTextViaHttp ?? true;
-
     const imagesFromFiles =
       input.files && input.files.length > 0 ? await filesToBase64(input.files) : [];
-
     const images = [...(input.images ?? []), ...imagesFromFiles].filter(Boolean);
-
     if (!receiverId) throw new Error("receiverId is required");
     if (!text && images.length === 0) throw new Error("Message text or images is required");
-
     if (persistTextViaHttp && text && images.length === 0) {
       await persistTextMessageHttp(receiverId, text);
     }
-
     const payload: MessageType = {
       sender_id: opts.myUserId,
       receiver_id: receiverId,
       message: text || null,
       images: images.length > 0 ? images : undefined,
     };
-
     s.emit("sendMessage", payload);
     return payload;
   }
-
   return {
     // socket
     connectRealtime,
     disconnectRealtime,
     onReceiverMessage,
-
     // http
     listUsers,
     getMessages,
-
     // send
     sendMessage,
-
     // helpers (để render ảnh)
     normalizeMessage,
     resolveImageSrc: (src: string) => resolveImageSrc(opts.baseURL, src),

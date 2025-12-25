@@ -4,6 +4,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import Header from "../components/layout/Header";
 import ChatSidebar from "../components/chat/ChatSidebar";
 import ChatHeader from "../components/chat/ChatHeader";
+
 import ChatMessages from "../components/chat/ChatMessages";
 import type { Contact, Message } from "../components/chat/chat.type";
 
@@ -87,32 +88,21 @@ export default function ChatPage() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // ===== Guards =====
   const myUserId: number | null = user?.user_id ? Number(user.user_id) : null;
-
-  // ✅ nếu bạn có Vite proxy thì để "" hoặc window.location.origin đều được
   const API_BASE = "http://localhost:3000";
-
-  // ===== UI state =====
   const [search, setSearch] = useState("");
   const [input, setInput] = useState("");
-
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [activeContactId, setActiveContactId] = useState<number | null>(null);
-
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-
   // ===== scroll refs =====
   const scrollerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
-
   // ===== file input refs =====
   const imagePickerRef = useRef<HTMLInputElement>(null);
   const attachPickerRef = useRef<HTMLInputElement>(null);
-
   const chatApi = useMemo(() => {
     if (!myUserId || !token) return null;
     return createChatApi({
@@ -122,8 +112,6 @@ export default function ChatPage() {
       socket,
     });
   }, [API_BASE, myUserId, token]);
-
-  // ✅ activeContact: không fallback bừa khi activeContactId đã set
   const activeContact = useMemo(() => {
     if (!contacts.length) return null;
 
@@ -131,7 +119,6 @@ export default function ChatPage() {
       const found = contacts.find((c) => c.id === activeContactId);
       return found || null;
     }
-
     return contacts[0];
   }, [contacts, activeContactId]);
 
@@ -140,8 +127,6 @@ export default function ChatPage() {
     if (!q) return contacts;
     return contacts.filter((c) => c.name.toLowerCase().includes(q));
   }, [contacts, search]);
-
-  // ===== Track near-bottom to decide auto scroll =====
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -151,19 +136,14 @@ export default function ChatPage() {
       const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
       setAutoScroll(nearBottom);
     };
-
     el.addEventListener("scroll", onScroll);
     onScroll();
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
-
-  // ===== auto scroll only when near bottom =====
   useEffect(() => {
     if (!autoScroll) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, autoScroll]);
-
-  // ===== Connect socket + load users =====
   useEffect(() => {
     if (!chatApi || !myUserId) return;
 
@@ -488,11 +468,16 @@ export default function ChatPage() {
                 >
                   Gửi
                 </button>
+                
               </div>
+              
             </section>
           </div>
         </div>
+        
       </main>
+      
     </div>
+    
   );
 }

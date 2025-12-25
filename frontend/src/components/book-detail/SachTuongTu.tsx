@@ -15,7 +15,6 @@ export default function SachTuongTu({ books }: { books?: SimilarBookUI[] }) {
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-        {/* Nếu chưa có data thì render skeleton cards */}
         {(list.length ? list : Array.from({ length: 5 })).map((b, idx) => (
           <SimilarBookCard key={idx} book={typeof b === "object" ? (b as SimilarBookUI) : undefined} />
         ))}

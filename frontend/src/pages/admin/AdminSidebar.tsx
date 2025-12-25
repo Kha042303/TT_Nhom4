@@ -1,11 +1,10 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   Users,
   Book,
   FileText,
   CreditCard,
   Flag,
-  MessageCircle,
   LayoutDashboard,
   LogOut,
 } from "lucide-react";
@@ -19,7 +18,36 @@ const menus = [
   { to: "/admin/reports", label: "Report", icon: Flag },
 ];
 
+function clearAuthStorage() {
+  // xoá các key phổ biến bạn từng dùng
+  localStorage.removeItem("token");
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("refresh_token");
+
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("accessToken");
+  sessionStorage.removeItem("access_token");
+}
+
 export default function AdminSidebar() {
+  const nav = useNavigate();
+
+  const handleLogout = () => {
+    clearAuthStorage();
+
+    // nếu bạn có lưu user trong localStorage (tuỳ project)
+    localStorage.removeItem("user");
+    localStorage.removeItem("profile");
+
+    // điều hướng về trang đăng nhập
+    nav("/signin", { replace: true });
+
+    // (tuỳ chọn) reload để reset mọi state đang giữ trong memory
+    // window.location.reload();
+  };
+
   return (
     <aside className="flex h-screen w-72 flex-col bg-[#0E1627]">
       {/* LOGO */}
@@ -61,7 +89,11 @@ export default function AdminSidebar() {
       </nav>
 
       {/* LOGOUT */}
-      <button className="m-4 flex items-center gap-2 rounded-xl bg-[#3470FD] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="m-4 flex items-center gap-2 rounded-xl bg-[#3470FD] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+      >
         <LogOut size={16} />
         Đăng xuất
       </button>

@@ -8,11 +8,13 @@ export type Book = {
   publisher?: string;
   price?: number;
   stock?: number;
+  seller_note?: string;
   description?: string;
   category?: string;
   status?: "active" | "inactive";
-  image_url?: string[] | string; // BE có thể trả string JSON
+  image_url?: string[] | string;
   user_id?: number;
+  published_year?: number;
 
   user?: any;
 };
@@ -22,27 +24,111 @@ export type CreateBookPayload = {
   author?: string;
   publisher?: string;
   category?: string;
+
+  // ✅ bạn muốn: tình trạng -> description
   description?: string;
+
+  // ✅ bạn muốn: mô tả -> seller_note
+  seller_note?: string;
+
   price?: number;
   stock?: number;
   status?: "active" | "inactive";
   images?: File[];
+  published_year?: number;
 };
+
+/** ===== Google Books: LOOKUP BY TITLE ===== */
+export type ExternalBookCandidate = {
+  id: string;
+  title: string;
+  author?: string;
+  publisher?: string;
+  publishedDate?: string;
+  description?: string;
+  category?: string;
+  thumbnail?: string;
+};
+
+function pickFirstString(v: any): string | undefined {
+  if (!v) return undefined;
+  if (typeof v === "string") return v.trim() || undefined;
+  return undefined;
+}
+
+function normalizeThumbnail(url?: string): string | undefined {
+  const u = pickFirstString(url);
+  if (!u) return undefined;
+  return u.startsWith("http://") ? "https://" + u.slice("http://".length) : u;
+}
+
+export async function searchExternalBooksByTitleApi(
+  title: string,
+  opts?: { maxResults?: number; signal?: AbortSignal }
+): Promise<ExternalBookCandidate[]> {
+  const q = (title || "").trim();
+  if (q.length < 2) return [];
+
+  const maxResults = Math.min(Math.max(opts?.maxResults ?? 8, 1), 20);
+
+  const url =
+    "https://www.googleapis.com/books/v1/volumes" +
+    `?q=${encodeURIComponent(`intitle:${q}`)}` +
+    `&maxResults=${maxResults}` +
+    `&printType=books`;
+
+  const res = await fetch(url, { signal: opts?.signal });
+  if (!res.ok) return [];
+
+  const json: any = await res.json();
+  const items: any[] = Array.isArray(json?.items) ? json.items : [];
+
+  return items
+    .map((it) => {
+      const id = String(it?.id ?? "");
+      const info = it?.volumeInfo ?? {};
+      const title = pickFirstString(info?.title) || "";
+      if (!id || !title) return null;
+
+      const authors = Array.isArray(info?.authors) ? info.authors.filter(Boolean) : [];
+      const author = authors.length ? String(authors[0]) : undefined;
+
+      const publisher = pickFirstString(info?.publisher);
+      const publishedDate = pickFirstString(info?.publishedDate);
+      const description = pickFirstString(info?.description);
+
+      const categories = Array.isArray(info?.categories) ? info.categories.filter(Boolean) : [];
+      const category = categories.length ? String(categories[0]) : undefined;
+
+      const thumb =
+        normalizeThumbnail(info?.imageLinks?.thumbnail) ||
+        normalizeThumbnail(info?.imageLinks?.smallThumbnail);
+
+      return {
+        id,
+        title,
+        author,
+        publisher,
+        publishedDate,
+        description,
+        category,
+        thumbnail: thumb,
+      } satisfies ExternalBookCandidate;
+    })
+    .filter(Boolean) as ExternalBookCandidate[];
+}
 
 function normalizeImages(img: any): string[] {
   if (!img) return [];
 
-  // Array sẵn
   if (Array.isArray(img)) return img.filter(Boolean).map(toAbsoluteImageUrl);
 
-  // String: có thể là JSON string hoặc 1 path
   if (typeof img === "string") {
     const s = img.trim();
     if (!s) return [];
     try {
       const parsed = JSON.parse(s);
       if (Array.isArray(parsed)) return parsed.filter(Boolean).map(toAbsoluteImageUrl);
-      // nếu parse ra string/object -> fallback
       return [toAbsoluteImageUrl(s)];
     } catch {
       return [toAbsoluteImageUrl(s)];
@@ -70,11 +156,20 @@ export async function createBookApi(payload: CreateBookPayload) {
   if (payload.author) form.append("author", payload.author);
   if (payload.publisher) form.append("publisher", payload.publisher);
   if (payload.category) form.append("category", payload.category);
-  if (payload.description) form.append("description", payload.description);
-  if (payload.status) form.append("status", payload.status);
 
+  if (payload.description) form.append("description", payload.description);
+
+  // ✅ FIX: thêm dòng này để DB không NULL
+  if (payload.seller_note) form.append("seller_note", payload.seller_note);
+
+  if (payload.status) form.append("status", payload.status);
   if (typeof payload.price === "number") form.append("price", String(payload.price));
   if (typeof payload.stock === "number") form.append("stock", String(payload.stock));
+
+  // ✅ NEW: năm xuất bản
+  if (typeof payload.published_year === "number") {
+    form.append("published_year", String(payload.published_year));
+  }
 
   (payload.images || []).forEach((f) => form.append("images", f));
 

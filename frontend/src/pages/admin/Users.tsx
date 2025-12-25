@@ -76,7 +76,6 @@ export default function AdminUsers() {
     await deleteUser(id);
     fetchUsers();
   };
-
   const getRoleColor = (roleName: string) => {
     const r = roleName.toLowerCase();
     if (r === "admin") return "bg-red-100 text-red-600";
@@ -84,18 +83,15 @@ export default function AdminUsers() {
     if (r === "buyer") return "bg-green-100 text-green-600";
     return "bg-gray-100 text-gray-600";
   };
-
-  // ✅ helper hiển thị role: ưu tiên role.role_name, không có thì fallback role_id
   const renderRole = (u: User) => {
     const rolesRaw = u.user_roles || [];
     if (!Array.isArray(rolesRaw) || rolesRaw.length === 0) {
       return <span className="text-xs text-gray-400">Chưa có</span>;
     }
-
     const now = Date.now();
 
     const roleNames = rolesRaw
-      .filter((ur) => ur?.is_active !== false) // nếu thiếu is_active -> coi như active
+      .filter((ur) => ur?.is_active !== false) 
       .filter((ur) => {
         if (!ur?.expire_at) return true;
         const exp = Date.parse(ur.expire_at);
@@ -103,13 +99,10 @@ export default function AdminUsers() {
         return exp > now;
       })
       .map((ur) => {
-        // ưu tiên role_name từ object role
         const name =
           ur?.role?.role_name ||
           ur?.Role?.role_name ||
           (typeof ur?.role_id === "number" ? ROLE_NAME_BY_ID[ur.role_id] : undefined);
-
-        // nếu vẫn không có thì show role_id cho khỏi trống
         if (!name && typeof ur?.role_id === "number") return `role_${ur.role_id}`;
         return name;
       })

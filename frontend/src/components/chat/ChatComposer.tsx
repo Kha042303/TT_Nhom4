@@ -7,7 +7,7 @@ export default function ChatComposer({
 }: {
   value: string;
   onChange: (v: string) => void;
-  onSend?: () => void; // UI-only (nối BE sau)
+  onSend?: () => void; 
 }) {
   return (
     <div className="border-t bg-white px-4 py-3 sticky bottom-0">

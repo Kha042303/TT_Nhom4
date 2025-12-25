@@ -6,6 +6,8 @@ export type User = {
   full_name?: string;
   email: string;
   status?: "active" | "inactive" | "banned";
+  phone?: string;
+  address?: string;
   roles?: string[];
   user_roles?: Array<{ role?: { role_name?: string } }>;
 };

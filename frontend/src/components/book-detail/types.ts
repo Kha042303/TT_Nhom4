@@ -4,11 +4,17 @@ export type SellerInfo = {
   joinedText?: string;
   rating?: number; // 0..5
   reviewCount?: number;
+
+  // thêm các field để hiển thị đầy đủ
+  phone?: string;
+  email?: string;
+  address?: string;
+  status?: "active" | "inactive" | "banned";
 };
 
 export type BookMeta = {
   publisher?: string;
-  year?: string;
+  year?: number;
   pages?: string;
   language?: string;
 };

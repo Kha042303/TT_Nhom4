@@ -77,12 +77,10 @@ export default function BookDetailPage() {
   };
 
   const bookUI: BookDetailUI = useMemo(() => {
-    if (!bookRaw) return {};
+    if (!bookRaw) return {} as any;
 
-    // ảnh
     const images = pickBookImages(bookRaw);
 
-    // tình trạng: BE chưa có field condition => map tạm từ stock/status để KHÔNG còn "—"
     let condition = "—";
     if (typeof bookRaw.stock === "number") {
       condition = bookRaw.stock > 0 ? `Còn hàng (${bookRaw.stock})` : "Hết hàng";
@@ -90,32 +88,24 @@ export default function BookDetailPage() {
       condition = bookRaw.status === "active" ? "Đang bán" : "Tạm ẩn";
     }
 
-    // location: map tạm từ address người bán (nếu có)
     const location = sellerUser?.address?.trim() ? sellerUser.address.trim() : "—";
-
-    // seller card
     const seller = mapUserToSeller(sellerUser);
 
     return {
       title: bookRaw.title,
       author: bookRaw.author || "—",
       badge: bookRaw.category || "Danh mục",
-      viewsText: "— lượt xem",
-
       price: typeof bookRaw.price === "number" ? bookRaw.price : undefined,
       oldPrice: undefined,
       discountPercent: undefined,
-
       condition,
       location,
-
       statusLabel: bookRaw.status === "active" ? "ĐANG BÁN" : "TẠM ẨN",
       images,
 
-      // meta cho ThongTinSach (nếu component bạn bắt buộc)
       meta: {
         publisher: bookRaw.publisher || "—",
-        year: "—",
+        year: typeof bookRaw.published_year === "number" ? bookRaw.published_year : undefined,
         pages: "—",
         language: "Tiếng Việt",
       },
@@ -137,7 +127,7 @@ export default function BookDetailPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header user={null as any} loading={false} />
+      <Header user={null as any} loading={loading} />
 
       <main className="mx-auto max-w-6xl px-4 pb-12">
         {/* Breadcrumb */}
@@ -151,20 +141,23 @@ export default function BookDetailPage() {
           </Link>
           <ChevronRight size={16} className="text-slate-400" />
           <span className="text-slate-700 line-clamp-1">
-            {bookUI.title || "Chi tiết sách"}
+            {bookUI.title || (loading ? "Đang tải..." : "Chi tiết sách")}
           </span>
         </div>
 
-        {err ? (
-          <div className="rounded-2xl border bg-white p-6 text-red-600">{err}</div>
-        ) : null}
+        {err ? <div className="rounded-2xl border bg-white p-6 text-red-600">{err}</div> : null}
 
         {/* Top section */}
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <div className="lg:col-span-7">
+          {/* LEFT */}
+          <div className="lg:col-span-7 space-y-4">
             <KhungAnh images={bookUI.images} statusLabel={bookUI.statusLabel} />
+
+            {/* ✅ đưa mô tả lên đây để cột trái cao hơn */}
+ <MotaChiTiet description={bookRaw?.description} sellerNote={bookRaw?.seller_note} />
           </div>
 
+          {/* RIGHT */}
           <div className="lg:col-span-5 space-y-4">
             <TinhTrangSach
               badge={bookUI.badge}
@@ -175,29 +168,25 @@ export default function BookDetailPage() {
               oldPrice={bookUI.oldPrice}
               discountPercent={bookUI.discountPercent}
               condition={bookUI.condition}
+              description={bookRaw?.description}
               location={bookUI.location}
             />
 
-            {/* Nút nhắn tin */}
-            <TTSeller
-              seller={bookUI.seller}
-              onMessage={handleMessageSeller}
-              disabled={!bookRaw?.user_id}
-            />
 
             <ThongTinSach meta={bookUI.meta} />
           </div>
         </section>
 
-        {/* Description */}
-        <section className="mt-8">
-          <MotaChiTiet />
 
-          {!loading && bookRaw?.description ? (
-            <div className="mt-4 rounded-2xl border bg-white p-6 text-slate-700 leading-relaxed">
-              {bookRaw.description}
-            </div>
-          ) : null}
+        {/* Mô tả & Lưu ý */}
+        <section className="mt-6">
+
+          <TTSeller
+            seller={bookUI.seller}
+            onMessage={handleMessageSeller}
+            disabled={!bookRaw?.user_id}
+          />
+
         </section>
 
         {/* Similar */}

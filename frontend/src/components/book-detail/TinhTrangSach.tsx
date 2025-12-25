@@ -14,7 +14,8 @@ export default function TinhTrangSach({
   oldPrice,
   discountPercent,
   condition,
-  location,
+  description, // ✅ mới
+  location, // ✅ giữ để tương thích
 }: {
   badge?: string;
   viewsText?: string;
@@ -24,10 +25,14 @@ export default function TinhTrangSach({
   oldPrice?: number;
   discountPercent?: number;
   condition?: string;
-  location?: string;
+  description?: string; // ✅ mới
+  location?: string; // ✅ giữ
 }) {
   const priceText = formatVND(price);
   const oldPriceText = formatVND(oldPrice);
+
+  // ✅ Ưu tiên description, nếu rỗng fallback location
+  const placeText = ( location ?? "").trim() || "—";
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -40,13 +45,17 @@ export default function TinhTrangSach({
       </div>
 
       <h1 className="mt-3 text-2xl md:text-3xl font-extrabold text-slate-900">
-        {title ?? <span className="inline-block h-8 w-64 bg-slate-100 animate-pulse rounded-lg" />}
+        {title ?? (
+          <span className="inline-block h-8 w-64 bg-slate-100 animate-pulse rounded-lg" />
+        )}
       </h1>
 
       <div className="mt-1 text-slate-600">
         Tác giả:{" "}
         <b className="text-slate-900">
-          {author ?? <span className="inline-block h-5 w-40 bg-slate-100 animate-pulse rounded-md" />}
+          {author ?? (
+            <span className="inline-block h-5 w-40 bg-slate-100 animate-pulse rounded-md" />
+          )}
         </b>
       </div>
 
@@ -54,13 +63,13 @@ export default function TinhTrangSach({
       <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
         <div className="flex items-end gap-3">
           <div className="text-3xl font-extrabold text-sky-600">
-            {priceText ?? <span className="inline-block h-8 w-32 bg-slate-100 animate-pulse rounded-lg" />}
+            {priceText ?? (
+              <span className="inline-block h-8 w-32 bg-slate-100 animate-pulse rounded-lg" />
+            )}
           </div>
 
           <div className="flex items-center gap-2 pb-1">
-            <span className="text-slate-400 line-through">
-              {oldPriceText ?? ""}
-            </span>
+            <span className="text-slate-400 line-through">{oldPriceText ?? ""}</span>
             {typeof discountPercent === "number" ? (
               <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">
                 -{discountPercent}%
@@ -75,14 +84,19 @@ export default function TinhTrangSach({
             <div className="mt-1 flex items-center gap-2 font-semibold text-slate-900">
               <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
               {condition ?? "—"}
+             
             </div>
+             <div className="mt-1 flex items-center gap-2 font-semibold text-slate-900">
+              <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+              {description ?? "—"}
+               </div>
           </div>
 
           <div>
             <div className="text-[11px] font-bold text-slate-500">ĐỊA ĐIỂM</div>
-            <div className="mt-1 flex items-center gap-2 font-semibold text-slate-900">
-              <MapPin size={16} className="text-slate-400" />
-              {location ?? "—"}
+            <div className="mt-1 flex items-start gap-2 font-semibold text-slate-900">
+              <MapPin size={16} className="mt-0.5 text-slate-400" />
+              <span className="whitespace-pre-wrap break-words">{placeText}</span>
             </div>
           </div>
         </div>

@@ -1,5 +1,12 @@
-import { MessageSquareText, Star } from "lucide-react";
+import { Mail, MapPin, MessageSquareText, Phone, Star, ShieldCheck } from "lucide-react";
 import type { SellerInfo } from "./types";
+
+function statusText(s?: SellerInfo["status"]) {
+  if (s === "active") return "Đang hoạt động";
+  if (s === "inactive") return "Không hoạt động";
+  if (s === "banned") return "Bị khóa";
+  return "—";
+}
 
 export default function TTSeller({
   seller,
@@ -13,9 +20,7 @@ export default function TTSeller({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-extrabold text-slate-900">
-          THÔNG TIN NGƯỜI BÁN
-        </div>
+        <div className="text-sm font-extrabold text-slate-900">THÔNG TIN NGƯỜI BÁN</div>
 
         <div className="flex items-center gap-2">
           <span
@@ -24,9 +29,7 @@ export default function TTSeller({
               seller?.online ? "bg-emerald-500" : "bg-slate-300",
             ].join(" ")}
           />
-          <span className="text-xs text-slate-500">
-            {seller?.online ? "Online" : "Offline"}
-          </span>
+          <span className="text-xs text-slate-500">{seller?.online ? "Online" : "Offline"}</span>
         </div>
       </div>
 
@@ -51,6 +54,41 @@ export default function TTSeller({
         </div>
       </div>
 
+      {/* ✅ thêm thông tin liên hệ */}
+      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2 text-sm">
+        <div className="flex items-start gap-2 text-slate-700">
+          <Phone size={16} className="mt-0.5 text-slate-400" />
+          <div className="min-w-0">
+            <div className="text-xs text-slate-500">Số điện thoại</div>
+            <div className="font-semibold break-words">{seller?.phone ?? "—"}</div>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-2 text-slate-700">
+          <Mail size={16} className="mt-0.5 text-slate-400" />
+          <div className="min-w-0">
+            <div className="text-xs text-slate-500">Email</div>
+            <div className="font-semibold break-words">{seller?.email ?? "—"}</div>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-2 text-slate-700">
+          <MapPin size={16} className="mt-0.5 text-slate-400" />
+          <div className="min-w-0">
+            <div className="text-xs text-slate-500">Địa chỉ</div>
+            <div className="font-semibold break-words">{seller?.address ?? "—"}</div>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-2 text-slate-700">
+          <ShieldCheck size={16} className="mt-0.5 text-slate-400" />
+          <div className="min-w-0">
+            <div className="text-xs text-slate-500">Trạng thái</div>
+            <div className="font-semibold break-words">{statusText(seller?.status)}</div>
+          </div>
+        </div>
+      </div>
+
       <button
         type="button"
         disabled={!!disabled}
@@ -64,9 +102,7 @@ export default function TTSeller({
         Nhắn tin cho người bán
       </button>
 
-      <div className="mt-3 text-center text-xs text-slate-500">
-        Thường phản hồi trong vòng 5 phút
-      </div>
+      <div className="mt-3 text-center text-xs text-slate-500">Thường phản hồi trong vòng 5 phút</div>
     </div>
   );
 }
