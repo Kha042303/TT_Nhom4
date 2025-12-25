@@ -5,26 +5,20 @@ module.exports.sendMessage = async (req, res) => {
   try {
     const senderId = req.user.user_id;
     const { receiver_id } = req.body;
-
-    // message có thể rỗng
     const message = (req.body.message || "").trim();
-
-    // multer: upload.array('images') => req.files
     const files = req.files || [];
     if (!receiver_id) {
       return res.json({ code: 400, message: "thiếu thông tin người nhận" });
     }
-    //  bắt buộc phải có ít nhất text hoặc ảnh
     if (!message && files.length === 0) {
       return res.json({ code: 400, message: "Vui lòng nhập tin nhắn hoặc chọn ảnh" });
     }
-    // build url/path ảnh
     const imageUrls = files.map((f) => `/images/chat/${f.filename}`);
     const newMessage = await Chat.create({
       sender_id: senderId,
       receiver_id,
       message: message || null,
-      images: imageUrls, // setter sẽ stringify
+      images: imageUrls, 
     });
     return res.json({
       code: 200,

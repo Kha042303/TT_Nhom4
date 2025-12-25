@@ -1,4 +1,3 @@
-// @ts-nocheck
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -9,11 +8,8 @@ const db = require("../models");
 const Role = db.Role;
 const UserRole = db.UserRole;
 const { Op } = require("sequelize");
-
-// TTL
 const ACCESS_TOKEN_TTL = "30m";
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
-
 // register
 module.exports.register = async (req, res) => {
   try {
@@ -53,7 +49,6 @@ module.exports.register = async (req, res) => {
     return res.json({ code: 500, message: "Lỗi server" });
   }
 };
-
 // login
 module.exports.login = async (req, res) => {
   try {
@@ -62,7 +57,6 @@ module.exports.login = async (req, res) => {
     if (!email || !password) {
       return res.json({ code: 400, message: "Thiếu email hoặc password" });
     }
-
     // lấy user + user_roles active
     let user = await User.findOne({
       where: { email, deleted: "false" },
@@ -106,31 +100,24 @@ module.exports.login = async (req, res) => {
         message: "Tài khoản đang bị tạm ngưng.",
       });
     }
-
-    // ==================================================
-    // AUTO HẾT HẠN SELLER → QUAY VỀ BUYER (UPDATE)
-    // ==================================================
+    // hết hạn seller thành buyer
     const now = new Date();
-    const activeRole = user.user_roles?.[0]; // 1 user chỉ có 1 role active
-
+    const activeRole = user.user_roles?.[0]; 
     if (
       activeRole &&
-      activeRole.role_id === 2 && // seller
+      activeRole.role_id === 2 && 
       activeRole.expire_at &&
       new Date(activeRole.expire_at) < now
     ) {
-      // 👉 UPDATE CHÍNH ROW NÀY → buyer
       await UserRole.update(
         {
-          role_id: 1,        // buyer
+          role_id: 1,       
           start_at: now,
           expire_at: null,
           is_active: true,
         },
         { where: { id: activeRole.id } }
       );
-
-      // fetch lại user để trả role mới
       user = await User.findOne({
         where: { email, deleted: "false" },
         include: [
@@ -150,32 +137,24 @@ module.exports.login = async (req, res) => {
         ],
       });
     }
-
-    // ✅ ACCESS TOKEN
     const accessToken = jwt.sign(
       { user_id: user.user_id },
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: ACCESS_TOKEN_TTL }
     );
-
-    // ✅ REFRESH TOKEN
     const refreshToken = crypto.randomBytes(64).toString("hex");
     const hashedRT = await bcrypt.hash(refreshToken, 10);
-
     await Session.create({
       user_id: user.user_id,
       refresh_token: hashedRT,
       expires_at: new Date(Date.now() + REFRESH_TOKEN_TTL),
     });
-
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
       sameSite: "none",
       maxAge: REFRESH_TOKEN_TTL,
     });
-
-    // ✅ RESPONSE GIỮ NGUYÊN FORMAT
     return res.json({
       code: 200,
       message: "Đăng nhập thành công",
@@ -208,8 +187,6 @@ module.exports.login = async (req, res) => {
     });
   }
 };
-
-
 //logout
 module.exports.logout = async (req, res) => {
   try {
@@ -225,10 +202,8 @@ module.exports.logout = async (req, res) => {
           await Session.destroy({ where: { session_id: s.session_id } });
         }
       }
-
       res.clearCookie("refreshToken");
     }
-
     return res.json({ code: 200, message: "Đăng xuất thành công" });
 
   } catch (error) {
@@ -242,10 +217,8 @@ module.exports.refreshToken = async (req, res) => {
     const token = req.cookies?.refreshToken;
     if (!token)
       return res.json({ message: "Không có token" });
-
     const sessions = await Session.findAll();
     let dbSession = null;
-
     for (const s of sessions) {
       const match = await bcrypt.compare(token, s.refresh_token);
       if (match) {
@@ -253,27 +226,21 @@ module.exports.refreshToken = async (req, res) => {
         break;
       }
     }
-
     if (!dbSession)
       return res.json({ message: "Token sai" });
-
     if (dbSession.expires_at < new Date())
       return res.json({ message: "Token hết hạn" });
-
     const accessToken = jwt.sign(
       { user_id: dbSession.user_id },
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: ACCESS_TOKEN_TTL }
     );
-
     return res.json({ accessToken });
-
   } catch (error) {
     console.log("REFRESH TOKEN ERROR:", error);
     return res.json({ code: 500, message: "Lỗi server" });
   }
 };
-
 //get profile
 module.exports.getProfile = async (req, res) => {
   try {
@@ -299,22 +266,16 @@ module.exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body; 
     if (!email) return res.json({ code: 400, message: "Thiếu email" });
-
     const user = await User.findOne({
       where: { email, deleted: "false" },
     });
-
     if (!user) return res.json({ code: 400, message: "Email không tồn tại" });
-
-    // tạo token (gửi cho client qua email) + hash token (lưu DB)
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = crypto
       .createHash("sha256")
       .update(resetToken)
       .digest("hex");
-
     const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
-
     await User.update(
       {
         password_reset_token: hashedToken,
@@ -322,18 +283,13 @@ module.exports.forgotPassword = async (req, res) => {
       },
       { where: { user_id: user.user_id } }
     );
-
-    // Link nên trỏ về FE (trang nhập mật khẩu mới), FE sẽ gọi API /reset-password kèm token
     const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
 const link = `${clientUrl}/reset-password?token=${resetToken}`;
-
-
     const html = `
-      <p>Xin vui lòng click vào link dưới đây để thay đổi mật khẩu.</p>
-      <p>Link này sẽ hết hạn sau <b>15 phút</b>.</p>
-      <a href="${link}">Click here</a>
+      <p>Xin vui lòng chọn vào đặt lại mật khẩu để thay đổi mật khẩu.</p>
+      <p>sau <b>15 phút</b> đặt lại mật khẩu sẽ vô hiệu hóa.</p>
+      <button href="${link}">Đặt lại mật khẩu </button>
     `;
-
     const rs = await sendMail({ email, html });
 
     return res.json({
@@ -352,9 +308,7 @@ module.exports.resetPassword = async (req, res) => {
     const { password, token } = req.body;
     if (!password || !token)
       return res.json({ code: 400, message: "Thiếu password hoặc token" });
-
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-
     const user = await User.findOne({
       where: {
         deleted: "false",
@@ -362,45 +316,35 @@ module.exports.resetPassword = async (req, res) => {
         password_reset_expires: { [Op.gt]: new Date() },
       },
     });
-
     if (!user) return res.json({ code: 400, message: "Token không hợp lệ hoặc đã hết hạn" });
-
     const hashedPassword = await bcrypt.hash(password, 10);
-
     user.password = hashedPassword;
     user.password_reset_token = null;
     user.password_reset_expires = null;
-
     await user.save();
-
     return res.json({ code: 200, message: "Đổi mật khẩu thành công" });
   } catch (error) {
     console.log("RESET PASSWORD ERROR:", error);
     return res.json({ code: 500, message: "Lỗi server" });
   }
 };
-
 // get profile by id
 module.exports.getProfileById = async (req, res) => {
   try {
     const id = req.params.id;
-
     const user = await User.findOne({
       where: { user_id: id, deleted: "false" }
     });
-
     return res.json({
       code: 200,
       message: "Thành công",
       data: user
     });
-
   } catch (error) {
     console.log("GET PROFILE BY ID ERROR:", error);
     return res.json({ code: 500, message: "Lỗi server" });
   }
 };
-
 // get all users (except admin and self)
 module.exports.getAllUsers = async (req, res) => {
   try {
@@ -419,7 +363,7 @@ module.exports.getAllUsers = async (req, res) => {
               model: Role,
               as: "role",
               where: {
-                role_name: { [Op.ne]: "admin" }   // lọc admin TẠI ĐÂY
+                role_name: { [Op.ne]: "admin" }   
               }
             }
           ]
@@ -432,30 +376,24 @@ module.exports.getAllUsers = async (req, res) => {
       message: "Thành công",
       data: users
     });
-
   } catch (error) {
     console.log("GET ALL USERS ERROR:", error);
     return res.json({ code: 500, message: "Lỗi server" });
   }
 };
-
-
 // edit profile
 module.exports.editProfile = async (req, res) => {
   try {
     const userId = req.user.user_id;
     const { full_name, address, phone } = req.body;
-
     await User.update(
       { full_name, address, phone },
       { where: { user_id: userId } }
     );
-
     return res.json({
       code: 200,
       message: "Sửa thành công"
     });
-
   } catch (error) {
     console.log("EDIT PROFILE ERROR:", error);
     return res.json({ code: 500, message: "Lỗi server" });

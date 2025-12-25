@@ -12,13 +12,9 @@ fs.readdirSync(__dirname)
   )
   .forEach(file => {
     const model = require(path.join(__dirname, file));
-
-    // Fix quan trọng
     const modelName = model.name || model.options?.name?.singular;
     db[modelName] = model;
   });
-
-// Gọi associate sau khi toàn bộ model đã load
 Object.keys(db).forEach(modelName => {
   if (typeof db[modelName].associate === "function") {
     db[modelName].associate(db);

@@ -1,22 +1,57 @@
 const db = require("../models");
 const User = db.User;
+
 const Post = require("../models/posts.model.js");
 const Book = require("../models/books.model.js");
 const Report = require("../models/report.model.js");
 const Payment = require("../models/payment.model");
-const {  UserRole, Role } = require("../models"); // sửa đúng path theo project bạn
 
+const { UserRole, Role } = require("../models");
+const { Op } = require("sequelize");
+const includeNonAdmin = [
+  {
+    model: UserRole,
+    as: "user_roles",
+    where: { is_active: true }, 
+    include: [
+      {
+        model: Role,
+        as: "role",
+        where: { role_name: { [Op.ne]: "admin" } },
+      },
+    ],
+  },
+];
+const isAdmin = async (userId) => {
+  const ur = await UserRole.findOne({
+    where: { user_id: userId, is_active: true },
+    include: [
+      {
+        model: Role,
+        as: "role",
+        required: true,
+        where: { role_name: "admin" },
+      },
+    ],
+  });
+  return !!ur;
+};
 // GET /api/v1/admin/dashboard/stats
 module.exports.getDashboardStats = async (req, res) => {
   try {
-    // Chạy song song các câu lệnh đếm để tối ưu thời gian phản hồi
-    const [userCount, bookCount, postCount, reportCount, revenueData] = await Promise.all([
-      User.count({ where: { deleted: "false" } }),
-      Book.count({ where: { deleted: "false" } }),
-      Post.count({ where: { deleted: "false" } }),
-      Report.count(),
-      Payment.sum('amount', { where: { status: 'success' } })
-    ]);
+    const [userCount, bookCount, postCount, reportCount, revenueData] =
+      await Promise.all([
+        User.count({
+          where: { deleted: "false" },
+          include: includeNonAdmin,
+          distinct: true,
+          col: "user_id",
+        }),
+        Book.count({ where: { deleted: "false" } }),
+        Post.count({ where: { deleted: "false" } }),
+        Report.count(),
+        Payment.sum("amount", { where: { status: "success" } }),
+      ]);
 
     return res.json({
       code: 200,
@@ -25,50 +60,41 @@ module.exports.getDashboardStats = async (req, res) => {
         books: bookCount,
         posts: postCount,
         reports: reportCount,
-        revenue: revenueData || 0
-      }
+        revenue: revenueData || 0,
+      },
     });
   } catch (error) {
+    console.log("GET DASHBOARD STATS ERROR:", error);
     return res.status(500).json({
       code: 500,
       message: "Lỗi khi lấy dữ liệu Dashboard",
-      error: error.message
+      error: error.message,
     });
   }
 };
- // GET /admin/users?page=&limit=
+// GET /admin/users?page=&limit=
 module.exports.getAdminUsers = async (req, res) => {
   try {
     let { page = 1, limit = 10 } = req.query;
-
     page = parseInt(page, 10);
     limit = parseInt(limit, 10);
     const offset = (page - 1) * limit;
-
-    const { rows, count } = await User.findAndCountAll({
+    const rows = await User.findAll({
       where: { deleted: "false" },
-
-      attributes: { exclude: ["password"] }, 
-      include: [
-        {
-          model: UserRole,
-          as: "user_roles", 
-          required: false,
-          attributes: ["id", "user_id", "role_id", "start_at", "expire_at", "is_active"],
-          include: [
-            {
-              model: Role,
-              as: "role", 
-              required: false,
-              attributes: ["role_id", "role_name", "description"],
-            },
-          ],
-        },
-      ],
+      attributes: { exclude: ["password"] },
+      include: includeNonAdmin,
       order: [["created_at", "DESC"]],
       limit,
       offset,
+      subQuery: false, 
       distinct: true,
+    });
+
+    const count = await User.count({
+      where: { deleted: "false" },
+      include: includeNonAdmin,
+      distinct: true,
+      col: "user_id",
     });
     return res.json({
       code: 200,
@@ -81,11 +107,11 @@ module.exports.getAdminUsers = async (req, res) => {
     });
   } catch (error) {
     console.log("GET ADMIN USERS ERROR:", error);
-    return res.status(500).json({ code: 500, message: "Lỗi server" });
+    return res.status(500).json({ code: 500, message: "Lỗi server", error: error.message });
   }
 };
 
-// PATCH /admin/users/:id/block  body: { status: 'active'|'inactive'|'banned' }
+// PATCH /admin/users/:id/block
 module.exports.toggleUserBlock = async (req, res) => {
   try {
     const { id } = req.params;
@@ -95,48 +121,32 @@ module.exports.toggleUserBlock = async (req, res) => {
     if (!allowed.includes(status)) {
       return res.status(400).json({ code: 400, message: "Status không hợp lệ" });
     }
-
-    const user = await User.findOne({
-      where: { user_id: id, deleted: "false" },
-    });
-
-    if (!user) {
-      return res.status(404).json({ code: 404, message: "User không tồn tại" });
-    }
+    const user = await User.findOne({ where: { user_id: id, deleted: "false" } });
+    if (!user) return res.status(404).json({ code: 404, message: "User không tồn tại" });
 
     await user.update({ status });
 
     return res.json({
       code: 200,
-      message:
-        status === "banned"
-          ? "Đã khóa tài khoản"
-          : "Đã cập nhật trạng thái tài khoản",
+      message: status === "banned" ? "Đã khóa tài khoản" : "Đã cập nhật trạng thái tài khoản",
     });
   } catch (error) {
     console.log("TOGGLE USER STATUS ERROR:", error);
-    return res.status(500).json({ code: 500, message: "Lỗi server" });
+    return res.status(500).json({ code: 500, message: "Lỗi server", error: error.message });
   }
 };
 
-// DELETE /admin/users/:id  (soft delete)
+// DELETE /admin/users/:id
 module.exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-
-    const user = await User.findOne({
-      where: { user_id: id, deleted: "false" },
-    });
-
-    if (!user) {
-      return res.status(404).json({ code: 404, message: "User không tồn tại" });
-    }
+    const user = await User.findOne({ where: { user_id: id, deleted: "false" } });
+    if (!user) return res.status(404).json({ code: 404, message: "User không tồn tại" });
 
     await user.update({ deleted: "true" });
-
     return res.json({ code: 200, message: "Đã xóa user" });
   } catch (error) {
     console.log("DELETE USER ERROR:", error);
-    return res.status(500).json({ code: 500, message: "Lỗi server" });
+    return res.status(500).json({ code: 500, message: "Lỗi server", error: error.message });
   }
 };

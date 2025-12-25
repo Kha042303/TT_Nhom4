@@ -9,23 +9,19 @@ const Session = sequelize.define(
       autoIncrement: true,
       primaryKey: true,
     },
-
     user_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-
     refresh_token: {
       type: DataTypes.TEXT,
       allowNull: false,
       unique: true,
     },
-
     expires_at: {
       type: DataTypes.DATE,
       allowNull: false,
     },
-
     is_revoked: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
@@ -35,17 +31,14 @@ const Session = sequelize.define(
       type: DataTypes.STRING(50),
       allowNull: true,
     },
-
     user_agent: {
       type: DataTypes.STRING(255),
       allowNull: true,
     },
-
     created_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
-
     updated_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,

@@ -9,7 +9,6 @@ const ALLOWED_TYPES = ["post", "user", "book", "chat"];
 module.exports.index = async (req, res) => {
   try {
     const where = {};
-
     if (req.query.report_type) {
       if (!ALLOWED_TYPES.includes(req.query.report_type)) {
         return res.status(400).json({
@@ -19,7 +18,6 @@ module.exports.index = async (req, res) => {
       }
       where.report_type = req.query.report_type;
     }
-
     if (req.query.user_id) {
       const uid = parseInt(req.query.user_id, 10);
       if (!Number.isFinite(uid)) {
@@ -36,7 +34,6 @@ module.exports.index = async (req, res) => {
       where.target_id = tid;
     }
 
-    // search keyword trên content + notes
     const objectSearch = searchHelper(req.query);
     if (objectSearch.keyword) {
       const kw = objectSearch.keyword.trim();
@@ -45,8 +42,6 @@ module.exports.index = async (req, res) => {
         { notes: { [Op.like]: `%${kw}%` } },
       ];
     }
-
-    // pagination
     const initPagination = { currentPage: 1, limitItems: 10 };
     const totalItems = await Report.count({ where });
     const pagination = paginationHelper(initPagination, req.query, totalItems);
@@ -94,7 +89,6 @@ module.exports.detail = async (req, res) => {
 };
 
 // POST /api/v1/report/create (AUTH)
-// body: { report_type, target_id, content?, notes? }
 module.exports.create = async (req, res) => {
   try {
     const { report_type, target_id, content = null, notes = null } = req.body;
@@ -110,17 +104,13 @@ module.exports.create = async (req, res) => {
     if (!Number.isFinite(tid)) {
       return res.status(400).json({ code: 400, message: "target_id là bắt buộc và phải là số" });
     }
-
-    // luôn lấy user_id từ token
     const userId = req.user.user_id;
-
     const created = await Report.create({
       user_id: userId,
       report_type,
       target_id: tid,
       content,
       notes,
-      // generated_at: DB tự set
     });
 
     return res.json({
@@ -133,17 +123,14 @@ module.exports.create = async (req, res) => {
   }
 };
 
-// PATCH /api/v1/report/edit/:id (AUTH)
+// PATCH /api/v1/report/edit/:id
 module.exports.edit = async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) {
       return res.status(400).json({ code: 400, message: "id không hợp lệ" });
     }
-
     const body = { ...req.body };
-
-    // không cho sửa các field nhạy cảm
     delete body.user_id;
     delete body.report_id;
 
@@ -174,19 +161,17 @@ module.exports.edit = async (req, res) => {
   }
 };
 
-// DELETE /api/v1/report/delete/:id (AUTH)
+// DELETE /api/v1/report/delete/:id
 module.exports.delete = async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) {
       return res.status(400).json({ code: 400, message: "id không hợp lệ" });
     }
-
     const deleted = await Report.destroy({ where: { report_id: id } });
     if (!deleted) {
       return res.status(404).json({ code: 404, message: "Không tìm thấy báo cáo" });
     }
-
     return res.json({ code: 200, message: "Xóa báo cáo thành công" });
   } catch (error) {
     return res.status(500).json({ code: 500, message: "Lỗi server", error: error.message });
@@ -201,7 +186,6 @@ module.exports.myReports = async (req, res) => {
       where: { user_id: userId },
       order: [["generated_at", "DESC"]],
     });
-
     return res.json({ code: 200, data: reports });
   } catch (error) {
     return res.status(500).json({ code: 500, message: "Lỗi server", error: error.message });

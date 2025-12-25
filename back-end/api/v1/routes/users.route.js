@@ -17,12 +17,12 @@ router.post("/logout", auth, userController.logout);
 router.post("/forgot-password", userController.forgotPassword);
 // Đặt lại mật khẩu
 router.post("/reset-password", userController.resetPassword);
-// Lấy thông tin người dùng hiện tại (CÓ AUTH)
+// Lấy thông tin người dùng hiện tại
 router.get("/profile", auth, userController.getProfile);
-
+//lấy thông tin user theo id
+router.get("/profileid/:id",userController.getProfileById);
 // Sửa thông tin người dùng hiện tại
 router.patch("/profile/editmyprofile", auth, userController.editProfile);
-
 // Lấy danh sách tất cả người dùng
 router.get("/list", auth, userController.getAllUsers);
 

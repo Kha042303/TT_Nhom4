@@ -62,7 +62,6 @@ module.exports.create = async (req, res) => {
         message: "Hệ thống chỉ hỗ trợ thanh toán MoMo"
       });
     }
-    // dùng amount nhận từ FE
     const finalAmount = parsedAmount;
     const order_id = generateOrderId();
     // LƯU PAYMENT TRƯỚC KHI GỌI MOMO
@@ -76,7 +75,6 @@ module.exports.create = async (req, res) => {
       message: "Đang chờ thanh toán"
     });
 
-    // TẠO YÊU CẦU MOMO
     const partnerCode = "MOMO";
     const accessKey = "F8BBA842ECF85";
     const secretKey = "K951B6PE1waDMi640xX08PD3vg6EkVlz";
@@ -170,7 +168,6 @@ module.exports.momoCallback = async (req, res) => {
         message: "Không tìm thấy giao dịch",
       });
     }
-    // Parse extraData an toàn
     let info = {};
     try {
       info = extraData ? JSON.parse(extraData) : {};
@@ -178,8 +175,7 @@ module.exports.momoCallback = async (req, res) => {
       info = {};
     }
     const user_id = info.user_id || payment.user_id;
-    const role_id = info.role_id; // seller role
-    // Thanh toán thất bại
+    const role_id = info.role_id;
     if (String(resultCode) !== "0") {
       await Payment.update(
         {

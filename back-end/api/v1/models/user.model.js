@@ -11,38 +11,31 @@ const User = sequelize.define(
       primaryKey: true,
       allowNull: false,
     },
-
     password: {
       type: DataTypes.STRING(255),
       allowNull: false,
     },
-
     full_name: {
       type: DataTypes.STRING(100),
       allowNull: true,
     },
-
     email: {
       type: DataTypes.STRING(100),
       allowNull: false,
     },
-
     address: {
       type: DataTypes.STRING(255),
       allowNull: true,
     },
-
     phone: {
       type: DataTypes.STRING(20),
       allowNull: true,
     },
-
     created_at: {
       type: DataTypes.DATE,
       allowNull: true,
       defaultValue: DataTypes.NOW,
     },
-
     status: {
       type: DataTypes.ENUM("active", "inactive", "banned"),
       allowNull: true,
@@ -55,15 +48,13 @@ const User = sequelize.define(
       defaultValue: "false",
     },
     password_reset_token: {
-  type: DataTypes.STRING(64), // sha256 hex = 64 ký tự
+  type: DataTypes.STRING(64), 
   allowNull: true,
 },
-
 password_reset_expires: {
   type: DataTypes.DATE,
   allowNull: true,
 },
-
   },
   {
     tableName: "users",
@@ -71,19 +62,15 @@ password_reset_expires: {
   }
   
 );
-
 User.associate = (models) => {
-
  User.hasMany(models.Chat, {
     foreignKey: "sender_id",
     as: "sender",   
   });
-
   User.hasMany(models.Chat, {
     foreignKey: "receiver_id",
     as: "receiver",  
   });
-
    User.hasMany(models.UserRole, {
     foreignKey: "user_id",
     as: "user_roles",

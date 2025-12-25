@@ -24,6 +24,11 @@ const books = sequelize.define(
     publisher: {
       type: DataTypes.STRING(100),
     },
+    published_year: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+
     price: {
       type: DataTypes.FLOAT,
     },
@@ -33,6 +38,10 @@ const books = sequelize.define(
     },
     description: {
       type: DataTypes.TEXT("long"),
+    },
+    seller_note: {
+      type: DataTypes.TEXT("long"),
+      allowNull: true,
     },
     category: {
       type: DataTypes.STRING(100),
@@ -46,7 +55,7 @@ const books = sequelize.define(
     deleted: {
       type: DataTypes.ENUM("true", "false"),
       allowNull: false,
-      defaultValue: "false"
+      defaultValue: "false",
     },
   },
   {

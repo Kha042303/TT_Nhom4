@@ -6,18 +6,11 @@ const Role = require("../models/roles.model.js");
 const paginationHelper = require("../../../helpers/pagination.js");
 const searchHelper = require("../../../helpers/Search.js");
 
-/* =========================
-   HELPER: CHECK ADMIN
-========================= */
 const isAdmin = (user) =>
   user?.user_roles?.some(
     (ur) => ur.is_active && ur.role?.role_name === "admin"
   );
 
-/* =========================
-   GET /api/v1/post
-   USER + ADMIN
-========================= */
 module.exports.index = async (req, res) => {
   try {
     const find = {
@@ -25,12 +18,9 @@ module.exports.index = async (req, res) => {
       order: [["post_id", "DESC"]],
     };
 
-    // filter status
     if (req.query.status) {
       find.where.status = req.query.status;
     }
-
-    // search title + content
     if (req.query.keyword) {
       const s = searchHelper(req.query);
       find.where[Op.or] = [
@@ -38,16 +28,12 @@ module.exports.index = async (req, res) => {
         { content: { [Op.regexp]: s.keyword } },
       ];
     }
-
     const initPagination = { currentPage: 1, limitItems: 8 };
     const total = await Post.count({ where: find.where });
     const pagination = paginationHelper(initPagination, req.query, total);
-
     find.limit = pagination.limitItems;
     find.offset = pagination.skip;
-
     const posts = await Post.findAll(find);
-
     return res.json({
       code: 200,
       data: posts.map((p) => ({
@@ -64,11 +50,6 @@ module.exports.index = async (req, res) => {
     });
   }
 };
-
-/* =========================
-   GET /api/v1/post/detail/:id
-   USER + ADMIN
-========================= */
 module.exports.detail = async (req, res) => {
   try {
     const post = await Post.findOne({
@@ -97,11 +78,6 @@ module.exports.detail = async (req, res) => {
     });
   }
 };
-
-/* =========================
-   POST /api/v1/post/create
-   USER + ADMIN
-========================= */
 module.exports.create = async (req, res) => {
   try {
     const userId = req.user.user_id;
@@ -128,7 +104,6 @@ module.exports.create = async (req, res) => {
       status: body.status || "visible",
       is_violation: body.is_violation ?? 0,
     });
-
     return res.json({
       code: 200,
       message: "Tạo bài viết thành công",
@@ -142,25 +117,17 @@ module.exports.create = async (req, res) => {
     });
   }
 };
-
-/* =========================
-   PATCH /api/v1/post/edit/:id
-   USER: bài của mình
-   ADMIN: tất cả
-========================= */
 module.exports.edit = async (req, res) => {
   try {
     const post = await Post.findOne({
       where: { post_id: req.params.id, deleted: "false" },
     });
-
     if (!post) {
       return res.status(404).json({
         code: 404,
         message: "Không tìm thấy bài viết",
       });
     }
-
     const user = await User.findByPk(req.user.user_id, {
       include: [
         {
@@ -172,7 +139,6 @@ module.exports.edit = async (req, res) => {
         },
       ],
     });
-
     if (!isAdmin(user) && post.user_id !== user.user_id) {
       return res.status(403).json({
         code: 403,
@@ -210,11 +176,6 @@ module.exports.edit = async (req, res) => {
     });
   }
 };
-
-/* =========================
-   PATCH /api/v1/post/change-status/:id
-   ADMIN ONLY
-========================= */
 module.exports.changeStatus = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.user_id, {
@@ -235,7 +196,6 @@ module.exports.changeStatus = async (req, res) => {
         message: "Chỉ admin mới được đổi trạng thái bài viết",
       });
     }
-
     const { status } = req.body;
     if (!["visible", "hidden"].includes(status)) {
       return res.status(400).json({
@@ -243,19 +203,16 @@ module.exports.changeStatus = async (req, res) => {
         message: "Status không hợp lệ",
       });
     }
-
     const [affected] = await Post.update(
       { status },
       { where: { post_id: req.params.id, deleted: "false" } }
     );
-
     if (!affected) {
       return res.status(404).json({
         code: 404,
         message: "Không tìm thấy bài viết",
       });
     }
-
     return res.json({
       code: 200,
       message: "Cập nhật trạng thái thành công",
@@ -268,12 +225,6 @@ module.exports.changeStatus = async (req, res) => {
     });
   }
 };
-
-/* =========================
-   DELETE /api/v1/post/delete/:id
-   USER: bài của mình
-   ADMIN: tất cả
-========================= */
 module.exports.delete = async (req, res) => {
   try {
     const post = await Post.findOne({
@@ -323,11 +274,6 @@ module.exports.delete = async (req, res) => {
     });
   }
 };
-
-/* =========================
-   GET /api/v1/post/my-posts
-   USER
-========================= */
 module.exports.myPosts = async (req, res) => {
   try {
     const posts = await Post.findAll({

@@ -10,8 +10,6 @@ const Report = sequelize.define(
       autoIncrement: true,
       allowNull: false,
     },
-
-    // người tạo report
     user_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -21,8 +19,6 @@ const Report = sequelize.define(
       type: DataTypes.ENUM("post", "user", "book", "chat"),
       allowNull: false,
     },
-
-    // id đối tượng bị report (post_id / user_id / book_id / chat_id tùy report_type)
     target_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -37,7 +33,7 @@ const Report = sequelize.define(
     generated_at: {
       type: DataTypes.DATE,
       allowNull: true,
-      defaultValue: DataTypes.NOW, // tương đương CURRENT_TIMESTAMP
+      defaultValue: DataTypes.NOW, 
     },
 
     notes: {
