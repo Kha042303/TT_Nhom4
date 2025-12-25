@@ -11,9 +11,11 @@ const { Op } = require("sequelize");
 const ACCESS_TOKEN_TTL = "30m";
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
 // register
+// register
 module.exports.register = async (req, res) => {
   try {
-    const { full_name, email, password } = req.body;
+    // Nhận thêm thông tin: phone, address
+    const { full_name, email, password, phone, address } = req.body;
 
     if (!full_name || !email || !password)
       return res.json({ code: 400, message: "Thiếu thông tin" });
@@ -31,7 +33,9 @@ module.exports.register = async (req, res) => {
       full_name,
       email,
       password: hashedPassword,
-      role: "buyer",
+      // thêm 2 field này
+      phone: phone || null,
+      address: address || null,
       status: "active"
     });
 
@@ -43,12 +47,12 @@ module.exports.register = async (req, res) => {
     });
 
     return res.json({ code: 200, message: "Đăng ký thành công" });
-
   } catch (error) {
     console.log("REGISTER ERROR:", error);
     return res.json({ code: 500, message: "Lỗi server" });
   }
 };
+
 // login
 module.exports.login = async (req, res) => {
   try {
