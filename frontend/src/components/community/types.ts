@@ -1,14 +1,29 @@
+// src/components/community/types.ts
 export type CommunityPost = {
-  post_id?: string | number;
+  post_id: string | number;
+  user_id?: number;
+
   user?: {
+    user_id?: number;
     full_name?: string;
     avatar_url?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
   };
-  created_at_text?: string; // "15 phút trước" (UI text)
+
+  title?: string;
   content?: string;
-  tags?: string[]; // ["KinhVanHoa"]
-  contact_text?: string; // "Liên hệ Zalo: 098xxxxxx (Tú)"
-  image_url?: string;
+
+  created_at?: string; // ISO từ BE
+  created_at_text?: string; // text hiển thị
+
+  // normalize từ API: luôn là mảng url đầy đủ (http...)
+  images?: string[];
+
+  // UI extras (chưa có BE)
+  tags?: string[];
+  contact_text?: string;
 
   stats?: {
     likes?: number;
