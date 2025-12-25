@@ -17,6 +17,7 @@ import type { BookDetailUI, SimilarBookUI } from "../components/book-detail/type
 
 import { getBookDetailApi, pickBookImages, type Book } from "../api/book.api";
 import { getUserByIdApi, mapUserToSeller, type UserPublic } from "../api/user.api";
+import { profileApi, type User } from "../api/auth.api";
 
 function safeGetTokenFromStorage() {
   return (
@@ -31,7 +32,36 @@ export default function BookDetailPage() {
   const { id } = useParams();
   const nav = useNavigate();
 
+  // ✅ AUTH giống HomePage
+  const [user, setUser] = useState<User | null>(() => {
+    const raw = localStorage.getItem("user");
+    return raw ? (JSON.parse(raw) as User) : null;
+  });
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const tk = localStorage.getItem("token") || localStorage.getItem("accessToken");
+      if (!tk) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      try {
+        const u = await profileApi();
+        setUser(u);
+        localStorage.setItem("user", JSON.stringify(u));
+      } catch {
+        setUser(null);
+        localStorage.removeItem("user");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  // ===== book detail (đổi tên loading để không đụng auth) =====
+  const [detailLoading, setDetailLoading] = useState(true);
   const [err, setErr] = useState("");
   const [bookRaw, setBookRaw] = useState<Book | null>(null);
   const [sellerUser, setSellerUser] = useState<UserPublic | null>(null);
@@ -40,7 +70,7 @@ export default function BookDetailPage() {
     if (!id) return;
 
     (async () => {
-      setLoading(true);
+      setDetailLoading(true);
       setErr("");
       setBookRaw(null);
       setSellerUser(null);
@@ -56,7 +86,7 @@ export default function BookDetailPage() {
       } catch (e: any) {
         setErr(e?.message || "Không tải được chi tiết sách");
       } finally {
-        setLoading(false);
+        setDetailLoading(false);
       }
     })();
   }, [id]);
@@ -127,7 +157,8 @@ export default function BookDetailPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header user={null as any} loading={loading} />
+      {/* ✅ Header lấy user giống HomePage */}
+      <Header user={user} loading={loading} />
 
       <main className="mx-auto max-w-6xl px-4 pb-12">
         {/* Breadcrumb */}
@@ -141,7 +172,7 @@ export default function BookDetailPage() {
           </Link>
           <ChevronRight size={16} className="text-slate-400" />
           <span className="text-slate-700 line-clamp-1">
-            {bookUI.title || (loading ? "Đang tải..." : "Chi tiết sách")}
+            {bookUI.title || (detailLoading ? "Đang tải..." : "Chi tiết sách")}
           </span>
         </div>
 
@@ -152,9 +183,7 @@ export default function BookDetailPage() {
           {/* LEFT */}
           <div className="lg:col-span-7 space-y-4">
             <KhungAnh images={bookUI.images} statusLabel={bookUI.statusLabel} />
-
-            {/* ✅ đưa mô tả lên đây để cột trái cao hơn */}
- <MotaChiTiet description={bookRaw?.description} sellerNote={bookRaw?.seller_note} />
+            <MotaChiTiet description={bookRaw?.description} sellerNote={bookRaw?.seller_note} />
           </div>
 
           {/* RIGHT */}
@@ -171,25 +200,18 @@ export default function BookDetailPage() {
               description={bookRaw?.description}
               location={bookUI.location}
             />
-
-
             <ThongTinSach meta={bookUI.meta} />
           </div>
         </section>
 
-
-        {/* Mô tả & Lưu ý */}
         <section className="mt-6">
-
           <TTSeller
             seller={bookUI.seller}
             onMessage={handleMessageSeller}
             disabled={!bookRaw?.user_id}
           />
-
         </section>
 
-        {/* Similar */}
         <section className="mt-10">
           <SachTuongTu books={similarBooks} />
         </section>
