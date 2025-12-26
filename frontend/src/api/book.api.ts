@@ -201,6 +201,7 @@ export async function listBooksApi(params?: {
   keyword?: string;
   sortKey?: string;
   sortValue?: "ASC" | "DESC";
+  userId?: number | string; // <--- THÊM DÒNG NÀY
 }) {
   const q = new URLSearchParams();
 
@@ -216,6 +217,10 @@ export async function listBooksApi(params?: {
 
   if (params?.sortKey) q.set("sortKey", params.sortKey);
   if (params?.sortValue) q.set("sortValue", params.sortValue);
+
+  // --- THÊM ĐOẠN NÀY ---
+  if (params?.userId) q.set("user_id", String(params.userId));
+  // ---------------------
 
   const suffix = q.toString() ? `?${q.toString()}` : "";
   const res = await apiFetch<any>(`/book${suffix}`, { method: "GET" });

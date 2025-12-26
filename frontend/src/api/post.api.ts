@@ -32,6 +32,7 @@ export type ListPostsParams = {
   limit?: number;
   status?: "visible" | "hidden";
   keyword?: string;
+  userId?: number | string; // <--- THÊM DÒNG NÀY
 };
 
 export type ListPostsResponse = {
@@ -95,6 +96,10 @@ export async function listPostsApi(
   if (params.keyword) qs.set("keyword", params.keyword);
   if (params.page) qs.set("page", String(params.page));
   if (params.limit) qs.set("limit", String(params.limit));
+
+  // --- THÊM ĐOẠN NÀY ---
+  if (params.userId) qs.set("user_id", String(params.userId));
+  // ---------------------
 
   const path = `/post${qs.toString() ? `?${qs.toString()}` : ""}`;
   const res = await apiFetch<ListPostsResponse>(path, { method: "GET" });

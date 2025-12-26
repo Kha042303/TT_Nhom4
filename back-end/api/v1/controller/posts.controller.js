@@ -18,6 +18,12 @@ module.exports.index = async (req, res) => {
       order: [["post_id", "DESC"]],
     };
 
+    // --- THÊM ĐOẠN NÀY ---
+    if (req.query.user_id) {
+      find.where.user_id = req.query.user_id;
+    }
+    // ---------------------
+
     if (req.query.status) {
       find.where.status = req.query.status;
     }

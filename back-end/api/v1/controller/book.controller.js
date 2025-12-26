@@ -46,6 +46,13 @@ module.exports.index = async (req, res) => {
       order: [],
     };
 
+    // --- THÊM ĐOẠN NÀY ---
+    // Cho phép lọc sách theo user_id (để xem sách của người khác)
+    if (req.query.user_id) {
+      find.where.user_id = req.query.user_id;
+    }
+    // ---------------------
+
     if (req.query.status) {
       find.where.status = req.query.status;
     }
