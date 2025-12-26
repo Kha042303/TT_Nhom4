@@ -1,14 +1,20 @@
-// src/components/report/ReportForm.tsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { ImagePlus, Loader2, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { createReportApi, type ReportType } from "../../api/report.api";
 
+// Cập nhật Props để nhận dữ liệu từ URL
+interface ReportFormProps {
+  defaultEmail?: string;
+  initialType?: string | null;
+  initialId?: string | null;
+}
+
 export default function ReportIssueForm({
   defaultEmail,
-}: {
-  defaultEmail?: string;
-}) {
+  initialType,
+  initialId,
+}: ReportFormProps) {
   const [reportType, setReportType] = useState<ReportType>("post");
   const [targetId, setTargetId] = useState<string>("");
   const [title, setTitle] = useState("");
@@ -16,6 +22,21 @@ export default function ReportIssueForm({
   const [email, setEmail] = useState(defaultEmail || "");
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // LOGIC MỚI: Tự động điền khi có props truyền vào
+  useEffect(() => {
+    const validTypes: ReportType[] = ["post", "user", "book", "chat"];
+    
+    // Nếu URL có type hợp lệ thì set
+    if (initialType && validTypes.includes(initialType as ReportType)) {
+      setReportType(initialType as ReportType);
+    }
+
+    // Nếu URL có ID thì set
+    if (initialId) {
+      setTargetId(initialId);
+    }
+  }, [initialType, initialId]);
 
   const token = useMemo(() => {
     return (
@@ -91,6 +112,9 @@ export default function ReportIssueForm({
     }
   };
 
+  // Biến kiểm tra xem có phải đang điền tự động không (để hiện style khác biệt)
+  const isAutoFilled = !!initialId;
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="p-6 md:p-8">
@@ -159,8 +183,16 @@ export default function ReportIssueForm({
               value={targetId}
               onChange={(e) => setTargetId(e.target.value)}
               placeholder="VD: post_id / user_id / book_id / chat_id"
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+              // Thêm style bg-slate-100 nếu tự điền
+              className={`mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-700 shadow-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100 ${
+                isAutoFilled ? "bg-slate-100 font-semibold" : "bg-white"
+              }`}
             />
+            {isAutoFilled && (
+              <p className="mt-1 text-xs text-emerald-600 font-medium">
+                * ID đã được điền tự động từ trang trước.
+              </p>
+            )}
           </div>
 
           {/* Title -> content */}

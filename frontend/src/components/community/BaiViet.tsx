@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom"; // Import Link
 import {
   Ellipsis,
   MessageCircle,
@@ -6,6 +7,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Flag,
+  AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
 import type { CommunityPost } from "./types";
@@ -24,6 +27,9 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
   // ===== lightbox state (xem ảnh) =====
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
+
+  // ===== Menu state =====
+  const [menuOpen, setMenuOpen] = useState(false); // State cho menu 3 chấm
 
   const openAt = (idx: number) => {
     setActiveIdx(idx);
@@ -54,13 +60,10 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
   // ===== SHARE (FE-only) =====
   const sharePost = async () => {
     if (!post?.post_id) return;
-
-    // ✅ Link chia sẻ: bạn có thể đổi thành `/community/post/${post.post_id}` nếu có route detail
     const shareUrl = `${window.location.origin}/community?post=${post.post_id}`;
     const title = post?.title || "Bài viết cộng đồng";
     const text = (post?.content || "").slice(0, 140);
 
-    // 1) Native share (mobile)
     try {
       if (navigator.share) {
         await navigator.share({ title, text, url: shareUrl });
@@ -68,29 +71,14 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
         return;
       }
     } catch {
-      // user bấm cancel -> không báo lỗi
       return;
     }
 
-    // 2) Fallback copy link
     try {
       await navigator.clipboard.writeText(shareUrl);
       toast.success("Đã copy link chia sẻ");
     } catch {
-      // fallback cũ cho trình duyệt chặn clipboard
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = shareUrl;
-        ta.style.position = "fixed";
-        ta.style.left = "-9999px";
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-        toast.success("Đã copy link chia sẻ");
-      } catch {
-        toast.error("Không thể copy link (trình duyệt chặn)");
-      }
+        // fallback
     }
   };
 
@@ -128,12 +116,41 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
             </div>
           </div>
 
-          <button
-            type="button"
-            className="h-9 w-9 rounded-xl hover:bg-slate-50 flex items-center justify-center"
-          >
-            <Ellipsis size={18} className="text-slate-500" />
-          </button>
+          {/* MENU 3 CHẤM BÁO CÁO */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="h-9 w-9 rounded-xl hover:bg-slate-50 flex items-center justify-center"
+            >
+              <Ellipsis size={18} className="text-slate-500" />
+            </button>
+
+            {menuOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10 cursor-default" 
+                  onClick={() => setMenuOpen(false)} 
+                />
+                <div className="absolute right-0 top-10 z-20 w-48 rounded-xl border border-slate-100 bg-white p-1 shadow-lg ring-1 ring-black/5">
+                  <Link
+                    to={`/report?type=post&id=${post?.post_id}`}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    <Flag size={16} /> Báo cáo bài viết
+                  </Link>
+                  <Link
+                    to={`/report?type=user&id=${post?.user_id}`}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <AlertTriangle size={16} /> Báo cáo người dùng
+                  </Link>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="px-4 pb-4">
@@ -186,13 +203,11 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
 
         <div className="border-t border-slate-200">
           <div className="grid grid-cols-2">
-            {/* Bình luận: UI-only (chưa có BE) */}
             <ActionBtn
               icon={<MessageCircle size={18} />}
               label="Bình luận"
               onClick={() => toast.info("Chức năng bình luận chưa được hỗ trợ")}
             />
-            {/* Chia sẻ: ✅ hoạt động */}
             <ActionBtn
               icon={<Share2 size={18} />}
               label="Chia sẻ"

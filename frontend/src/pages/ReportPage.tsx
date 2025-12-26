@@ -1,5 +1,5 @@
-// src/pages/ReportPage.tsx
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom"; // IMPORT MỚI
 
 import ReportIssueForm from "../components/report/ReportForm";
 import SupportSidebar from "../components/report/ReportSidebar";
@@ -10,6 +10,10 @@ import Footer from "../components/layout/Footer";
 import { profileApi, type User } from "../api/auth.api";
 
 export default function ReportPage() {
+  const [searchParams] = useSearchParams(); // LOGIC MỚI
+  const urlType = searchParams.get("type"); // Lấy type từ url
+  const urlId = searchParams.get("id");     // Lấy id từ url
+
   const [user, setUser] = useState<User | null>(() => {
     const raw = localStorage.getItem("user");
     return raw ? (JSON.parse(raw) as User) : null;
@@ -49,7 +53,12 @@ export default function ReportPage() {
           </div>
 
           <div className="lg:col-span-8">
-            <ReportIssueForm defaultEmail={(user as any)?.email || ""} />
+            <ReportIssueForm 
+              defaultEmail={(user as any)?.email || ""}
+              // TRUYỀN DỮ LIỆU VÀO FORM
+              initialType={urlType}
+              initialId={urlId}
+            />
           </div>
         </div>
       </main>

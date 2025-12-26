@@ -1,7 +1,6 @@
-// src/pages/BookDetailPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Flag } from "lucide-react"; // Import thêm icon Flag
 
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
@@ -210,6 +209,15 @@ export default function BookDetailPage() {
             onMessage={handleMessageSeller}
             disabled={!bookRaw?.user_id}
           />
+          {/* NÚT BÁO CÁO SÁCH */}
+          <div className="mt-3 flex justify-end">
+            <Link 
+              to={`/report?type=book&id=${bookRaw?.book_id}`}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-red-600 hover:underline transition-colors"
+            >
+              <Flag size={14} /> Báo cáo sách này
+            </Link>
+          </div>
         </section>
 
         <section className="mt-10">
