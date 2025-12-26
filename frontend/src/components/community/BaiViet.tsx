@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Ellipsis, MessageCircle, Share2, X, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Ellipsis,
+  MessageCircle,
+  Share2,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { toast } from "sonner";
 import type { CommunityPost } from "./types";
 
 export default function BaiViet({ post }: { post?: CommunityPost }) {
@@ -13,7 +21,7 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
     post?.user?.full_name ||
     (post?.user_id ? `Người dùng #${post.user_id}` : "");
 
-  // ===== lightbox state =====
+  // ===== lightbox state (xem ảnh) =====
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
 
@@ -21,7 +29,6 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
     setActiveIdx(idx);
     setOpen(true);
   };
-
   const close = () => setOpen(false);
 
   const prev = () => setActiveIdx((i) => (i - 1 + images.length) % images.length);
@@ -43,6 +50,49 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
 
   const showImages = images.slice(0, 4);
   const moreCount = images.length > 4 ? images.length - 4 : 0;
+
+  // ===== SHARE (FE-only) =====
+  const sharePost = async () => {
+    if (!post?.post_id) return;
+
+    // ✅ Link chia sẻ: bạn có thể đổi thành `/community/post/${post.post_id}` nếu có route detail
+    const shareUrl = `${window.location.origin}/community?post=${post.post_id}`;
+    const title = post?.title || "Bài viết cộng đồng";
+    const text = (post?.content || "").slice(0, 140);
+
+    // 1) Native share (mobile)
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url: shareUrl });
+        toast.success("Đã mở chia sẻ");
+        return;
+      }
+    } catch {
+      // user bấm cancel -> không báo lỗi
+      return;
+    }
+
+    // 2) Fallback copy link
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Đã copy link chia sẻ");
+    } catch {
+      // fallback cũ cho trình duyệt chặn clipboard
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = shareUrl;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        toast.success("Đã copy link chia sẻ");
+      } catch {
+        toast.error("Không thể copy link (trình duyệt chặn)");
+      }
+    }
+  };
 
   return (
     <>
@@ -99,7 +149,7 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
             )}
           </div>
 
-          {/* ✅ Grid ảnh + click để mở */}
+          {/* Grid ảnh + click để mở */}
           {showImages.length > 0 ? (
             <div className="mt-4 grid grid-cols-2 gap-2">
               {showImages.map((src, idx) => (
@@ -136,13 +186,23 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
 
         <div className="border-t border-slate-200">
           <div className="grid grid-cols-2">
-            <ActionBtn icon={<MessageCircle size={18} />} label="Bình luận" />
-            <ActionBtn icon={<Share2 size={18} />} label="Chia sẻ" />
+            {/* Bình luận: UI-only (chưa có BE) */}
+            <ActionBtn
+              icon={<MessageCircle size={18} />}
+              label="Bình luận"
+              onClick={() => toast.info("Chức năng bình luận chưa được hỗ trợ")}
+            />
+            {/* Chia sẻ: ✅ hoạt động */}
+            <ActionBtn
+              icon={<Share2 size={18} />}
+              label="Chia sẻ"
+              onClick={sharePost}
+            />
           </div>
         </div>
       </div>
 
-      {/* ✅ Lightbox */}
+      {/* Lightbox */}
       {open && images.length > 0 ? (
         <div
           className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
@@ -152,7 +212,6 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
             className="relative w-full max-w-5xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* close */}
             <button
               type="button"
               onClick={close}
@@ -162,7 +221,6 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
               Đóng
             </button>
 
-            {/* image */}
             <div className="rounded-2xl overflow-hidden bg-black">
               <img
                 src={images[activeIdx]}
@@ -172,7 +230,6 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
               />
             </div>
 
-            {/* nav */}
             {images.length > 1 ? (
               <>
                 <button
@@ -204,10 +261,19 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
   );
 }
 
-function ActionBtn({ icon, label }: { icon: React.ReactNode; label: string }) {
+function ActionBtn({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick?: () => void;
+}) {
   return (
     <button
       type="button"
+      onClick={onClick}
       className="py-3 inline-flex items-center justify-center gap-2 text-sm font-extrabold text-slate-700 hover:bg-slate-50"
     >
       <span className="text-slate-500">{icon}</span>

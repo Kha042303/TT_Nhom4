@@ -15,7 +15,6 @@ export type Book = {
   image_url?: string[] | string;
   user_id?: number;
   published_year?: number;
-
   user?: any;
 };
 
@@ -24,13 +23,8 @@ export type CreateBookPayload = {
   author?: string;
   publisher?: string;
   category?: string;
-
-  // ✅ bạn muốn: tình trạng -> description
   description?: string;
-
-  // ✅ bạn muốn: mô tả -> seller_note
   seller_note?: string;
-
   price?: number;
   stock?: number;
   status?: "active" | "inactive";
@@ -38,7 +32,8 @@ export type CreateBookPayload = {
   published_year?: number;
 };
 
-/** ===== Google Books: LOOKUP BY TITLE ===== */
+/* ================= GOOGLE BOOKS ================= */
+
 export type ExternalBookCandidate = {
   id: string;
   title: string;
@@ -59,7 +54,9 @@ function pickFirstString(v: any): string | undefined {
 function normalizeThumbnail(url?: string): string | undefined {
   const u = pickFirstString(url);
   if (!u) return undefined;
-  return u.startsWith("http://") ? "https://" + u.slice("http://".length) : u;
+  return u.startsWith("http://")
+    ? "https://" + u.slice("http://".length)
+    : u;
 }
 
 export async function searchExternalBooksByTitleApi(
@@ -90,14 +87,18 @@ export async function searchExternalBooksByTitleApi(
       const title = pickFirstString(info?.title) || "";
       if (!id || !title) return null;
 
-      const authors = Array.isArray(info?.authors) ? info.authors.filter(Boolean) : [];
+      const authors = Array.isArray(info?.authors)
+        ? info.authors.filter(Boolean)
+        : [];
       const author = authors.length ? String(authors[0]) : undefined;
 
       const publisher = pickFirstString(info?.publisher);
       const publishedDate = pickFirstString(info?.publishedDate);
       const description = pickFirstString(info?.description);
 
-      const categories = Array.isArray(info?.categories) ? info.categories.filter(Boolean) : [];
+      const categories = Array.isArray(info?.categories)
+        ? info.categories.filter(Boolean)
+        : [];
       const category = categories.length ? String(categories[0]) : undefined;
 
       const thumb =
@@ -118,23 +119,26 @@ export async function searchExternalBooksByTitleApi(
     .filter(Boolean) as ExternalBookCandidate[];
 }
 
+/* ================= NORMALIZE ================= */
+
 function normalizeImages(img: any): string[] {
   if (!img) return [];
 
-  if (Array.isArray(img)) return img.filter(Boolean).map(toAbsoluteImageUrl);
+  if (Array.isArray(img))
+    return img.filter(Boolean).map(toAbsoluteImageUrl);
 
   if (typeof img === "string") {
     const s = img.trim();
     if (!s) return [];
     try {
       const parsed = JSON.parse(s);
-      if (Array.isArray(parsed)) return parsed.filter(Boolean).map(toAbsoluteImageUrl);
+      if (Array.isArray(parsed))
+        return parsed.filter(Boolean).map(toAbsoluteImageUrl);
       return [toAbsoluteImageUrl(s)];
     } catch {
       return [toAbsoluteImageUrl(s)];
     }
   }
-
   return [];
 }
 
@@ -148,7 +152,9 @@ export function pickBookImages(book?: Book | null): string[] {
   return normalizeImages(book.image_url);
 }
 
-// POST /api/v1/book/create  (multipart field: images)
+/* ================= CRUD ================= */
+
+// POST /api/v1/book/create
 export async function createBookApi(payload: CreateBookPayload) {
   const form = new FormData();
   form.append("title", payload.title);
@@ -156,20 +162,15 @@ export async function createBookApi(payload: CreateBookPayload) {
   if (payload.author) form.append("author", payload.author);
   if (payload.publisher) form.append("publisher", payload.publisher);
   if (payload.category) form.append("category", payload.category);
-
   if (payload.description) form.append("description", payload.description);
-
-  // ✅ FIX: thêm dòng này để DB không NULL
   if (payload.seller_note) form.append("seller_note", payload.seller_note);
-
   if (payload.status) form.append("status", payload.status);
-  if (typeof payload.price === "number") form.append("price", String(payload.price));
-  if (typeof payload.stock === "number") form.append("stock", String(payload.stock));
-
-  // ✅ NEW: năm xuất bản
-  if (typeof payload.published_year === "number") {
+  if (typeof payload.price === "number")
+    form.append("price", String(payload.price));
+  if (typeof payload.stock === "number")
+    form.append("stock", String(payload.stock));
+  if (typeof payload.published_year === "number")
     form.append("published_year", String(payload.published_year));
-  }
 
   (payload.images || []).forEach((f) => form.append("images", f));
 
@@ -189,7 +190,9 @@ export async function getBookDetailApi(bookId: number | string) {
   return normalizeBook(raw) as Book;
 }
 
-// GET /api/v1/book?page=&limit=&status=&keyword=&category=
+/* ================= SEARCH + CATEGORY ================= */
+
+// ✅ CHỈ SỬA PHẦN NÀY
 export async function listBooksApi(params?: {
   page?: number;
   limit?: number;
@@ -200,11 +203,17 @@ export async function listBooksApi(params?: {
   sortValue?: "ASC" | "DESC";
 }) {
   const q = new URLSearchParams();
+
   if (params?.page) q.set("page", String(params.page));
   if (params?.limit) q.set("limit", String(params.limit));
-  if (params?.category) q.set("category", params.category);
   if (params?.status) q.set("status", params.status);
   if (params?.keyword) q.set("keyword", params.keyword);
+
+  // ✅ FIX QUAN TRỌNG: KHÔNG gửi "Tất Cả" lên backend
+  if (params?.category && params.category !== "Tất Cả") {
+    q.set("category", params.category);
+  }
+
   if (params?.sortKey) q.set("sortKey", params.sortKey);
   if (params?.sortValue) q.set("sortValue", params.sortValue);
 
@@ -218,6 +227,9 @@ export async function listBooksApi(params?: {
     res?.rows ||
     (Array.isArray(res) ? res : []);
 
-  const books = (Array.isArray(listRaw) ? listRaw : []).map(normalizeBook) as Book[];
+  const books = (Array.isArray(listRaw) ? listRaw : []).map(
+    normalizeBook
+  ) as Book[];
+
   return { books, raw: res };
 }

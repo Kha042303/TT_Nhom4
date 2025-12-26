@@ -50,6 +50,11 @@ module.exports.index = async (req, res) => {
       find.where.status = req.query.status;
     }
 
+    // ✅ Thêm filter theo category
+    if (req.query.category && req.query.category !== "Tất Cả") {
+      find.where.category = req.query.category;
+    }
+
     const objectSearch = searchHelper(req.query);
 
     // ✅ FIX: keyword nên OR chứ không overwrite (title bị ghi đè bởi author)
@@ -87,7 +92,15 @@ module.exports.index = async (req, res) => {
       };
     });
 
-    res.json({ data });
+    res.json({ 
+      data,
+      pagination: {
+        current_page: pagination.currentPage,
+        total_pages: pagination.totalPage,
+        total_records: countBooks,
+        limit: pagination.limitItems
+      }
+    });
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: err.message });
@@ -160,6 +173,7 @@ module.exports.changeStatus = async (req, res) => {
     });
   }
 };
+
 // [POST] /api/v1/book/create
 module.exports.create = async (req, res) => {
   try {
@@ -191,6 +205,7 @@ module.exports.create = async (req, res) => {
     });
   }
 };
+
 // PATCH /api/v1/book/edit/:id
 module.exports.edit = async (req, res) => {
   try {
@@ -226,6 +241,7 @@ module.exports.edit = async (req, res) => {
     });
   }
 };
+
 // DELETE /api/v1/book/delete/:id
 module.exports.delete = async (req, res) => {
   try {
