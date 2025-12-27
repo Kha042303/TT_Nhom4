@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronRight, Flag } from "lucide-react"; // Import thêm icon Flag
+import { ChevronRight, Flag } from "lucide-react";
 
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
@@ -10,9 +10,11 @@ import TinhTrangSach from "../components/book-detail/TinhTrangSach";
 import TTSeller from "../components/book-detail/TTSeller";
 import ThongTinSach from "../components/book-detail/ThongTinSach";
 import MotaChiTiet from "../components/book-detail/MotaChiTiet";
-import SachTuongTu from "../components/book-detail/SachTuongTu";
 
-import type { BookDetailUI, SimilarBookUI } from "../components/book-detail/types";
+// ✅ THAY ĐỔI 1: Import Container thay vì Component hiển thị trực tiếp
+import SachTuongTuContainer from "../components/book-detail/SachTuongTuContainer";
+
+import type { BookDetailUI } from "../components/book-detail/types";
 
 import { getBookDetailApi, pickBookImages, type Book } from "../api/book.api";
 import { getUserByIdApi, mapUserToSeller, type UserPublic } from "../api/user.api";
@@ -31,7 +33,7 @@ export default function BookDetailPage() {
   const { id } = useParams();
   const nav = useNavigate();
 
-  // ✅ AUTH giống HomePage
+  // --- PHẦN 1: XỬ LÝ AUTH (Giữ nguyên) ---
   const [user, setUser] = useState<User | null>(() => {
     const raw = localStorage.getItem("user");
     return raw ? (JSON.parse(raw) as User) : null;
@@ -59,7 +61,7 @@ export default function BookDetailPage() {
     })();
   }, []);
 
-  // ===== book detail (đổi tên loading để không đụng auth) =====
+  // --- PHẦN 2: XỬ LÝ BOOK DETAIL (Giữ nguyên) ---
   const [detailLoading, setDetailLoading] = useState(true);
   const [err, setErr] = useState("");
   const [bookRaw, setBookRaw] = useState<Book | null>(null);
@@ -143,32 +145,18 @@ export default function BookDetailPage() {
     };
   }, [bookRaw, sellerUser]);
 
-  const similarBooks: SimilarBookUI[] = useMemo(
-    () => [
-      { title: "Sách tương tự 1", author: "—", price: 50000, condition: "Mới 90%", location: "—" },
-      { title: "Sách tương tự 2", author: "—", price: 65000, condition: "Mới 95%", location: "—" },
-      { title: "Sách tương tự 3", author: "—", price: 70000, condition: "Khá", location: "—" },
-      { title: "Sách tương tự 4", author: "—", price: 55000, condition: "Cũ", location: "—" },
-      { title: "Sách tương tự 5", author: "—", price: 80000, condition: "Mới 100%", location: "—" },
-    ],
-    []
-  );
+  // ❌ ĐÃ XÓA: Phần similarBooks giả (mock data) ở đây
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* ✅ Header lấy user giống HomePage */}
       <Header user={user} loading={loading} />
 
       <main className="mx-auto max-w-6xl px-4 pb-12">
         {/* Breadcrumb */}
         <div className="flex flex-wrap items-center gap-2 py-4 text-sm text-slate-500">
-          <Link to="/" className="hover:text-slate-700">
-            Trang chủ
-          </Link>
+          <Link to="/" className="hover:text-slate-700">Trang chủ</Link>
           <ChevronRight size={16} className="text-slate-400" />
-          <Link to="/books" className="hover:text-slate-700">
-            Sách cũ
-          </Link>
+          <Link to="/books" className="hover:text-slate-700">Sách cũ</Link>
           <ChevronRight size={16} className="text-slate-400" />
           <span className="text-slate-700 line-clamp-1">
             {bookUI.title || (detailLoading ? "Đang tải..." : "Chi tiết sách")}
@@ -209,7 +197,6 @@ export default function BookDetailPage() {
             onMessage={handleMessageSeller}
             disabled={!bookRaw?.user_id}
           />
-          {/* NÚT BÁO CÁO SÁCH */}
           <div className="mt-3 flex justify-end">
             <Link 
               to={`/report?type=book&id=${bookRaw?.book_id}`}
@@ -220,8 +207,14 @@ export default function BookDetailPage() {
           </div>
         </section>
 
+        {/* ✅ THAY ĐỔI 2: Sử dụng SachTuongTuContainer */}
         <section className="mt-10">
-          <SachTuongTu books={similarBooks} />
+          {bookRaw ? (
+            <SachTuongTuContainer 
+              currentBookId={bookRaw.book_id} 
+              category={bookRaw.category} 
+            />
+          ) : null}
         </section>
       </main>
 

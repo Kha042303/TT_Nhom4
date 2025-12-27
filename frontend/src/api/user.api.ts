@@ -43,7 +43,7 @@ export async function resetPasswordApi(password: string, token: string) {
   });
 }
 export async function getProfileApi() {
-  return apiFetch<any>("/user/profileid", { method: "GET" });
+  return apiFetch<any>("/user/profile", { method: "GET" });
 }
 export async function getUserByIdApi(userId: number | string): Promise<UserPublic | null> {
   try {

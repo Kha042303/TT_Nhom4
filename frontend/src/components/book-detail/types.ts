@@ -40,8 +40,8 @@ export type BookDetailUI = {
 };
 
 export type SimilarBookUI = {
-  id?: string | number;
-  title?: string;
+  id: number | string;
+  title: string;
   author?: string;
   price?: number;
   condition?: string;
