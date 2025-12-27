@@ -249,9 +249,23 @@ module.exports.refreshToken = async (req, res) => {
 module.exports.getProfile = async (req, res) => {
   try {
     const userId = req.user.user_id;
-
     const user = await User.findOne({
-      where: { user_id: userId, deleted: "false" }
+      where: { user_id: userId, deleted: "false" },
+      include: [
+        {
+          model: UserRole,
+          as: "user_roles",
+          required: false,
+          where: { is_active: true },
+          include: [
+            {
+              model: Role,
+              as: "role",
+              attributes: ["role_id", "role_name"],
+            },
+          ],
+        },
+      ],
     });
 
     return res.json({

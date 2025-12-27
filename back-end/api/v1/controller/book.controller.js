@@ -45,26 +45,17 @@ module.exports.index = async (req, res) => {
       where: { deleted: "false" },
       order: [],
     };
-
-    // --- THÊM ĐOẠN NÀY ---
-    // Cho phép lọc sách theo user_id (để xem sách của người khác)
     if (req.query.user_id) {
       find.where.user_id = req.query.user_id;
     }
-    // ---------------------
-
     if (req.query.status) {
       find.where.status = req.query.status;
     }
-
-    // ✅ Thêm filter theo category
     if (req.query.category && req.query.category !== "Tất Cả") {
       find.where.category = req.query.category;
     }
 
     const objectSearch = searchHelper(req.query);
-
-    // ✅ FIX: keyword nên OR chứ không overwrite (title bị ghi đè bởi author)
     if (req.query.keyword) {
       find.where[Op.or] = [
         { title: { [Op.regexp]: objectSearch.keyword } },
@@ -80,8 +71,6 @@ module.exports.index = async (req, res) => {
 
     const countBooks = await books.count({ where: find.where });
     const pagination = paginationHelper(initPagination, req.query, countBooks);
-
-    // apply sort trước khi findAll
     if (req.query.sortKey && req.query.sortValue) {
       find.order.push([req.query.sortKey, req.query.sortValue]);
     }

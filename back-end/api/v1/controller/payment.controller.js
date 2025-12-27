@@ -14,7 +14,7 @@ function generateOrderId() {
 module.exports.create = async (req, res) => {
   try {
     const user_id = req.user.user_id;
-    const { role_id, typePayment, amount } = req.body; //nhận amount từ FE
+    const { role_id, typePayment, amount } = req.body; 
     if (!role_id) {
       return res.status(400).json({
         code: 400,
@@ -42,7 +42,6 @@ module.exports.create = async (req, res) => {
         message: "Role không tồn tại"
       });
     }
-    // Không cho buyer hoặc admin mua
     if (role.role_id === 1) {
       return res.status(400).json({
         code: 400,
@@ -64,7 +63,6 @@ module.exports.create = async (req, res) => {
     }
     const finalAmount = parsedAmount;
     const order_id = generateOrderId();
-    // LƯU PAYMENT TRƯỚC KHI GỌI MOMO
     const paymentRecord = await Payment.create({
       order_id,
       user_id,
@@ -158,7 +156,7 @@ module.exports.create = async (req, res) => {
 module.exports.momoCallback = async (req, res) => {
   try {
     const { resultCode, orderId, extraData, message } = req.query;
-    //Tìm payment
+
     const payment = await Payment.findOne({
       where: { order_id: orderId },
     });
