@@ -41,7 +41,7 @@ export default function TinhTrangSach({
           <Sparkles size={14} />
           {badge ?? "Danh mục"}
         </span>
-        <span className="text-xs text-slate-500">{viewsText ?? "— lượt xem"}</span>
+        
       </div>
 
       <h1 className="mt-3 text-2xl md:text-3xl font-extrabold text-slate-900">

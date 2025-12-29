@@ -1,20 +1,28 @@
-export type UserInfoUI = {
-  full_name?: string;
-  badge?: string; // "Thành viên tích cực"
-  bio?: string;
+export type SellerInfo = {
+  // ✅ Thêm dòng này:
+  user_id?: number; 
+  
+  name: string;
+  status?: "active" | "inactive" | "banned";
+  online?: boolean;
+  joinedText?: string;
+  rating?: number;
+  reviewCount?: number;
   phone?: string;
   email?: string;
-  location?: string;
-  joined_text?: string; // "Tham gia từ tháng 08/2023"
-  avatar_url?: string;
+  address?: string;
 };
 
-export type UserInfoEditUI = {
+export type UserInfoUI = {
+  id?: number | string;
+  isCurrentUser?: boolean; 
   full_name?: string;
+  badge?: string;
   bio?: string;
   phone?: string;
   email?: string;
   location?: string;
+  joined_text?: string;
   avatar_url?: string;
 };
 
@@ -25,36 +33,19 @@ export type SellingBookUI = {
   price?: number;
   condition_badge?: string;
   cover_url?: string;
-};
-
-
-export type MyBookUI = SellingBookUI & {
-  status?: "active" | "inactive"; 
+  isOwner?: boolean; 
 };
 
 export type FindRequestUI = {
   id?: string | number;
   title?: string;
   content?: string;
-  status_badge?: string; // "Đang Tìm Kiếm" | "Đã Tìm Thấy"
+  status_badge?: string;
   created_at_text?: string;
   likes?: number;
   comments?: number;
-};
-
-/** Dùng cho list "Bài đăng tôi đăng" */
-export type MyPostUI = {
-  id?: string | number;
-  title?: string;
-  content?: string;
-  created_at_text?: string;
+  isOwner?: boolean; 
+  user_name?: string;
+  user_avatar?: string;
   images?: string[];
-  likes?: number;
-  comments?: number;
-
-  /** UI-only: trạng thái hiển thị */
-  status?: "visible" | "hidden";
-
-  /** (tuỳ dùng) nếu bạn muốn hiển thị badge text luôn */
-  status_badge?: string; // "Hiển thị" | "Đã ẩn"
 };

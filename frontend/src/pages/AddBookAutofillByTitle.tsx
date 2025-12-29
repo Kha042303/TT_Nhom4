@@ -323,26 +323,7 @@ export default function AddBookAutofillByTitle() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold">ISBN-10</label>
-                  <input
-                    value={isbn10}
-                    onChange={(e) => setIsbn10(cleanIsbn(e.target.value))}
-                    placeholder="Tự điền (nếu có)"
-                    className="mt-2 w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-sky-200"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold">ISBN-13</label>
-                  <input
-                    value={isbn13}
-                    onChange={(e) => setIsbn13(cleanIsbn(e.target.value))}
-                    placeholder="Tự điền (nếu có)"
-                    className="mt-2 w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-sky-200"
-                  />
-                </div>
-
+               
                 <div>
                   <label className="block text-sm font-semibold">Giá (VNĐ)</label>
                   <input

@@ -13,7 +13,6 @@ export default function ImageDropzone({
   max = 10,
   accept = "image/*",
 }: Props) {
-  // nếu không truyền files/onChange -> dùng internal state (giữ tương thích)
   const [inner, setInner] = useState<File[]>([]);
   const list = files ?? inner;
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom"; // Import Link
+import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
 import {
   Ellipsis,
   MessageCircle,
@@ -8,12 +8,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Flag,
-  AlertTriangle
+  AlertTriangle,
+  ExternalLink // Icon cho xem chi tiết
 } from "lucide-react";
 import { toast } from "sonner";
 import type { CommunityPost } from "./types";
 
 export default function BaiViet({ post }: { post?: CommunityPost }) {
+  const navigate = useNavigate(); // Hook để chuyển trang
   const hasData = !!post;
 
   const images = useMemo(() => {
@@ -29,7 +31,7 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
   const [activeIdx, setActiveIdx] = useState(0);
 
   // ===== Menu state =====
-  const [menuOpen, setMenuOpen] = useState(false); // State cho menu 3 chấm
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const openAt = (idx: number) => {
     setActiveIdx(idx);
@@ -42,25 +44,29 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
 
   useEffect(() => {
     if (!open) return;
-
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
       if (e.key === "ArrowLeft") prev();
       if (e.key === "ArrowRight") next();
     };
-
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, images.length]);
 
   const showImages = images.slice(0, 4);
   const moreCount = images.length > 4 ? images.length - 4 : 0;
 
+  // ===== XỬ LÝ LIÊN HỆ =====
+  const handleContact = () => {
+    if (!post?.user_id) return;
+    // Chuyển hướng sang trang chat với ID người đăng
+    navigate(`/chat?sellerId=${post.user_id}`);
+  };
+
   // ===== SHARE (FE-only) =====
   const sharePost = async () => {
     if (!post?.post_id) return;
-    const shareUrl = `${window.location.origin}/community?post=${post.post_id}`;
+    const shareUrl = `${window.location.origin}/post/detail/${post.post_id}`; // Link chi tiết
     const title = post?.title || "Bài viết cộng đồng";
     const text = (post?.content || "").slice(0, 140);
 
@@ -85,14 +91,18 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
   return (
     <>
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        
+        {/* HEADER: Avatar + Tên + Menu */}
         <div className="p-4 flex items-start justify-between">
-          <div className="flex items-center gap-3">
+          
+          {/* Click vào Avatar/Tên cũng sang trang cá nhân */}
+          <Link to={`/profileid/${post?.user_id}`} className="flex items-center gap-3 group">
             <div className="h-11 w-11 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center font-extrabold text-slate-500">
               {post?.user?.avatar_url ? (
                 <img
                   src={post.user.avatar_url}
                   alt={displayName || "avatar"}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover group-hover:opacity-90 transition-opacity"
                   draggable={false}
                 />
               ) : (
@@ -101,7 +111,7 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
             </div>
 
             <div>
-              <div className="font-extrabold text-slate-900">
+              <div className="font-extrabold text-slate-900 group-hover:text-sky-600 transition-colors">
                 {displayName ? (
                   displayName
                 ) : (
@@ -114,9 +124,9 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
                 )}
               </div>
             </div>
-          </div>
+          </Link>
 
-          {/* MENU 3 CHẤM BÁO CÁO */}
+          {/* MENU 3 CHẤM */}
           <div className="relative">
             <button
               type="button"
@@ -132,7 +142,16 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
                   className="fixed inset-0 z-10 cursor-default" 
                   onClick={() => setMenuOpen(false)} 
                 />
-                <div className="absolute right-0 top-10 z-20 w-48 rounded-xl border border-slate-100 bg-white p-1 shadow-lg ring-1 ring-black/5">
+                <div className="absolute right-0 top-10 z-20 w-48 rounded-xl border border-slate-100 bg-white p-1 shadow-lg ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100">
+                  {/* Link xem chi tiết trong menu */}
+                  <Link
+                    to={`/post/detail/${post?.post_id}`}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    <ExternalLink size={16} /> Xem chi tiết
+                  </Link>
+
                   <Link
                     to={`/report?type=post&id=${post?.post_id}`}
                     onClick={() => setMenuOpen(false)}
@@ -154,19 +173,21 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
         </div>
 
         <div className="px-4 pb-4">
-          <div className="text-slate-700 leading-relaxed">
-            {post?.content ? (
-              <p>{post.content}</p>
-            ) : (
-              <div className="space-y-2">
-                <div className="h-4 w-full rounded bg-slate-100 animate-pulse" />
-                <div className="h-4 w-11/12 rounded bg-slate-100 animate-pulse" />
-                <div className="h-4 w-9/12 rounded bg-slate-100 animate-pulse" />
-              </div>
-            )}
-          </div>
+          {/* [LOGIC MỚI] Bọc nội dung text trong Link để xem chi tiết */}
+          <Link to={`/post/detail/${post?.post_id}`} className="block group">
+             <div className="text-slate-700 leading-relaxed group-hover:text-slate-900 transition-colors">
+                {post?.content ? (
+                  <p className="line-clamp-4">{post.content}</p> // line-clamp để nếu dài quá thì hiện ...
+                ) : (
+                  <div className="space-y-2">
+                    <div className="h-4 w-full rounded bg-slate-100 animate-pulse" />
+                    <div className="h-4 w-11/12 rounded bg-slate-100 animate-pulse" />
+                  </div>
+                )}
+             </div>
+          </Link>
 
-          {/* Grid ảnh + click để mở */}
+          {/* Grid ảnh */}
           {showImages.length > 0 ? (
             <div className="mt-4 grid grid-cols-2 gap-2">
               {showImages.map((src, idx) => (
@@ -174,8 +195,8 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
                   key={`${src}-${idx}`}
                   type="button"
                   onClick={() => openAt(idx)}
-                  className="relative overflow-hidden rounded-2xl border border-slate-200 focus:outline-none"
-                  title="Nhấn để xem"
+                  className="relative overflow-hidden rounded-2xl border border-slate-200 focus:outline-none hover:opacity-95 transition-opacity"
+                  title="Nhấn để xem ảnh lớn"
                 >
                   <img
                     src={src}
@@ -201,13 +222,18 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
           ) : null}
         </div>
 
+        {/* FOOTER BUTTONS */}
         <div className="border-t border-slate-200">
-          <div className="grid grid-cols-2">
+          <div className="grid grid-cols-2 divide-x divide-slate-100">
+            
+            {/* NÚT LIÊN HỆ (Thay cho bình luận) */}
             <ActionBtn
-              icon={<MessageCircle size={18} />}
-              label="Bình luận"
-              onClick={() => toast.info("Chức năng bình luận chưa được hỗ trợ")}
+              icon={<MessageCircle size={18} className="text-sky-600" />}
+              label="Liên hệ"
+              onClick={handleContact}
             />
+
+            {/* NÚT CHIA SẺ */}
             <ActionBtn
               icon={<Share2 size={18} />}
               label="Chia sẻ"
@@ -217,30 +243,30 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
         </div>
       </div>
 
-      {/* Lightbox */}
+      {/* Lightbox (Giữ nguyên) */}
       {open && images.length > 0 ? (
         <div
-          className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[999] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={close}
         >
           <div
-            className="relative w-full max-w-5xl"
+            className="relative w-full max-w-5xl h-full flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={close}
-              className="absolute -top-12 right-0 inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-white hover:bg-white/20"
+              className="absolute top-4 right-4 z-50 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-white hover:bg-white/20 backdrop-blur-md transition-colors"
             >
               <X size={18} />
-              Đóng
+              <span className="font-bold text-sm">Đóng</span>
             </button>
 
-            <div className="rounded-2xl overflow-hidden bg-black">
+            <div className="rounded-lg overflow-hidden max-h-[90vh]">
               <img
                 src={images[activeIdx]}
                 alt={`full-${activeIdx}`}
-                className="w-full max-h-[80vh] object-contain bg-black"
+                className="max-w-full max-h-[85vh] object-contain"
                 draggable={false}
               />
             </div>
@@ -250,21 +276,19 @@ export default function BaiViet({ post }: { post?: CommunityPost }) {
                 <button
                   type="button"
                   onClick={prev}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center"
-                  title="Trước"
+                  className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 text-white hover:bg-white/20 backdrop-blur-md flex items-center justify-center transition-all"
                 >
-                  <ChevronLeft />
+                  <ChevronLeft size={28} />
                 </button>
                 <button
                   type="button"
                   onClick={next}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center"
-                  title="Sau"
+                  className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 text-white hover:bg-white/20 backdrop-blur-md flex items-center justify-center transition-all"
                 >
-                  <ChevronRight />
+                  <ChevronRight size={28} />
                 </button>
 
-                <div className="mt-3 text-center text-white/80 text-sm font-semibold">
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-black/50 text-white/90 text-sm font-bold backdrop-blur-sm">
                   {activeIdx + 1} / {images.length}
                 </div>
               </>
@@ -289,9 +313,9 @@ function ActionBtn({
     <button
       type="button"
       onClick={onClick}
-      className="py-3 inline-flex items-center justify-center gap-2 text-sm font-extrabold text-slate-700 hover:bg-slate-50"
+      className="py-3 inline-flex items-center justify-center gap-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors active:bg-slate-100"
     >
-      <span className="text-slate-500">{icon}</span>
+      <span>{icon}</span>
       {label}
     </button>
   );

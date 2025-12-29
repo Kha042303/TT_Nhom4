@@ -32,7 +32,7 @@ export type ListPostsParams = {
   limit?: number;
   status?: "visible" | "hidden";
   keyword?: string;
-  userId?: number | string; // <--- THÊM DÒNG NÀY
+  userId?: number | string;
 };
 
 export type ListPostsResponse = {
@@ -52,16 +52,12 @@ function resolveStaticUrl(url: string) {
 function normalizeImages(images: any): string[] {
   if (!images) return [];
 
-  // BE đôi khi trả array
   if (Array.isArray(images)) {
     return images.map((x) => resolveStaticUrl(String(x)));
   }
 
-  // BE create trả string JSON: "[\"/images/...\",\"/images/...\"]"
   if (typeof images === "string") {
     const s = images.trim();
-
-    // nếu là json array string
     if (s.startsWith("[") && s.endsWith("]")) {
       try {
         const parsed = JSON.parse(s);
@@ -72,8 +68,6 @@ function normalizeImages(images: any): string[] {
         // fallthrough
       }
     }
-
-    // nếu là 1 đường dẫn đơn
     return [resolveStaticUrl(s)];
   }
 
@@ -96,10 +90,7 @@ export async function listPostsApi(
   if (params.keyword) qs.set("keyword", params.keyword);
   if (params.page) qs.set("page", String(params.page));
   if (params.limit) qs.set("limit", String(params.limit));
-
-  // --- THÊM ĐOẠN NÀY ---
   if (params.userId) qs.set("user_id", String(params.userId));
-  // ---------------------
 
   const path = `/post${qs.toString() ? `?${qs.toString()}` : ""}`;
   const res = await apiFetch<ListPostsResponse>(path, { method: "GET" });
@@ -127,7 +118,6 @@ export async function createPostApi(payload: CreatePostPayload) {
   if (payload.is_violation !== undefined)
     fd.append("is_violation", String(payload.is_violation));
 
-  // ✅ đúng field multer: upload.array("images", 10)
   (payload.images || []).forEach((f) => fd.append("images", f));
 
   const res = await apiFetch<any>("/post/create", {
@@ -135,19 +125,53 @@ export async function createPostApi(payload: CreatePostPayload) {
     body: fd,
   });
 
-  // normalize data trả về
   if (res?.data) res.data = normalizePost(res.data);
   return res;
 }
 
-/** (tuỳ chọn) GET /post/detail/:id */
+/** 👇 [MỚI] PATCH /post/edit/:id */
+export async function editPostApi(
+  id: number | string,
+  payload: {
+    title: string;
+    content?: string;
+    status?: string;
+    images?: File[]; // Nếu có upload ảnh mới
+  }
+) {
+  const fd = new FormData();
+  fd.append("title", payload.title);
+  if (payload.content) fd.append("content", payload.content);
+  if (payload.status) fd.append("status", payload.status);
+
+  // Append ảnh mới nếu có
+  if (payload.images && payload.images.length > 0) {
+    payload.images.forEach((f) => fd.append("images", f));
+  }
+
+  const res = await apiFetch<any>(`/post/edit/${id}`, {
+    method: "PATCH",
+    body: fd,
+  });
+
+  if (res?.data) res.data = normalizePost(res.data);
+  return res;
+}
+
+/** 👇 [MỚI] DELETE /post/delete/:id */
+export async function deletePostApi(id: number | string) {
+  return apiFetch<any>(`/post/delete/${id}`, { method: "DELETE" });
+}
+
+/** GET /post/detail/:id */
 export async function getPostDetailApi(id: number | string) {
   const res = await apiFetch<any>(`/post/detail/${id}`, { method: "GET" });
-  if (res?.data) res.data = normalizePost(res.data);
-  return res;
+  // Trả về data đã normalize trực tiếp để dễ dùng
+  const rawData = res?.data ?? res;
+  return normalizePost(rawData);
 }
 
-/** (tuỳ chọn) GET /post/my-posts */
+/** GET /post/my-posts */
 export async function myPostsApi() {
   const res = await apiFetch<any>("/post/my-posts", { method: "GET" });
   return {

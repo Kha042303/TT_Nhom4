@@ -1,4 +1,6 @@
-import { Mail, MapPin, MessageSquareText, Phone, Star, ShieldCheck } from "lucide-react";
+import { useState } from "react"; // [1] Import useState
+import { useNavigate } from "react-router-dom"; // [2] Import hook điều hướng
+import { Mail, MapPin, MessageSquareText, Phone, Star, ShieldCheck, User } from "lucide-react";
 import type { SellerInfo } from "./types";
 
 function statusText(s?: SellerInfo["status"]) {
@@ -17,6 +19,17 @@ export default function TTSeller({
   onMessage?: () => void;
   disabled?: boolean;
 }) {
+  const navigate = useNavigate(); // Hook để chuyển trang
+  const [showMenu, setShowMenu] = useState(false); // State quản lý menu toggle
+  const handleViewProfile = () => {
+    if (seller?.user_id) {
+      // Giả sử đường dẫn trang cá nhân là /profile/:id
+      // Bạn hãy sửa lại đường dẫn này theo đúng router của bạn (ví dụ: /user/detail/...)
+      navigate(`/profileid/${seller.user_id}`); 
+    }
+    setShowMenu(false);
+  };
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between">
@@ -34,7 +47,45 @@ export default function TTSeller({
       </div>
 
       <div className="mt-4 flex items-center gap-3">
-        <div className="h-12 w-12 rounded-full bg-slate-100 border border-slate-200" />
+        {/* --- [BẮT ĐẦU SỬA ĐỔI] --- */}
+        {/* Bọc avatar trong div relative để định vị menu dropdown */}
+        <div className="relative">
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="h-12 w-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-sky-500 transition-all cursor-pointer"
+              title="Click để xem tùy chọn"
+            >
+              {/* Nếu có ảnh thì hiển thị img, không thì hiện div rỗng hoặc icon mặc định */}
+              {/* Ở đây đang giữ nguyên div rỗng như code cũ, bạn có thể thêm logic <img> */}
+              <User size={24} className="text-slate-400" /> 
+            </button>
+
+            {/* Menu Dropdown hiển thị khi click */}
+            {showMenu && (
+              <div className="absolute top-14 left-0 z-10 w-48 rounded-lg border border-slate-200 bg-white shadow-xl animate-in fade-in zoom-in-95 duration-200">
+                <div className="p-1">
+                  <button
+                    onClick={handleViewProfile}
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-sky-600 transition-colors"
+                  >
+                    <User size={16} />
+                    <span>Xem trang cá nhân</span>
+                  </button>
+                  {/* Có thể thêm các nút khác vào đây, ví dụ: Báo cáo người dùng */}
+                </div>
+              </div>
+            )}
+            
+            {/* Lớp phủ tàng hình để đóng menu khi click ra ngoài (Optional UI UX trick) */}
+            {showMenu && (
+              <div 
+                className="fixed inset-0 z-0" 
+                onClick={() => setShowMenu(false)}
+              ></div>
+            )}
+        </div>
+        {/* --- [KẾT THÚC SỬA ĐỔI] --- */}
+
         <div className="min-w-0">
           <div className="font-extrabold text-slate-900">
             {seller?.name ?? (
@@ -44,17 +95,10 @@ export default function TTSeller({
 
           <div className="text-sm text-slate-500">{seller?.joinedText ?? "—"}</div>
 
-          <div className="mt-1 flex items-center gap-2 text-sm">
-            <span className="inline-flex items-center gap-1 font-bold text-amber-600">
-              <Star size={16} className="fill-amber-400 text-amber-400" />
-              {typeof seller?.rating === "number" ? seller.rating.toFixed(1) : "—"}
-            </span>
-            <span className="text-slate-500">({seller?.reviewCount ?? "—"} đánh giá)</span>
-          </div>
+        
         </div>
       </div>
 
-      {/* ✅ thêm thông tin liên hệ */}
       <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2 text-sm">
         <div className="flex items-start gap-2 text-slate-700">
           <Phone size={16} className="mt-0.5 text-slate-400" />

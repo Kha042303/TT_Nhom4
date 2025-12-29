@@ -377,9 +377,7 @@ export default function SellBook() {
                       <option value="80">Khá (80%) - Có trầy xước</option>
                       <option value="70">Cũ (70%) - Có hư hỏng nhỏ</option>
                     </Select>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Tình trạng sẽ được lưu vào <b>description</b> (backend).
-                    </p>
+                
                   </div>
 
                   <div>
@@ -404,11 +402,9 @@ export default function SellBook() {
                     rows={4}
                     value={sellerNote}
                     onChange={(e: any) => setSellerNote(e.target.value)}
-                    placeholder="Nội dung mô tả sẽ được lưu vào seller_note..."
+                    placeholder="Nhập mô tả chi tiết về sách, tình trạng, v.v."
                   />
-                  <p className="mt-1 text-xs text-slate-500">
-                    Mô tả này sẽ được lưu vào <b>seller_note</b> (backend).
-                  </p>
+                 
                 </div>
 
                 <ImageDropzone files={images} onChange={setImages} />

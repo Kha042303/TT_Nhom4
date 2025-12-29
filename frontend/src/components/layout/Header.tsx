@@ -8,7 +8,7 @@ import {
   Sparkles, // Icon Lấp lánh (Free)
 } from "lucide-react";
 
-// --- 1. ĐỊNH NGHĨA TYPE TRỰC TIẾP TẠI ĐÂY (Để sửa lỗi import) ---
+// --- 1. ĐỊNH NGHĨA TYPE ---
 
 interface Role {
   role_id: number;
@@ -20,12 +20,10 @@ interface UserRole {
   role?: Role;
 }
 
-// Định nghĩa User đầy đủ ngay trong file này
 type User = {
   user_id: number;
   full_name?: string;
   email: string;
-  // Các trường quan trọng để check VIP
   user_roles?: UserRole[]; 
   roles?: string[]; 
   plan_name?: string;
@@ -35,32 +33,27 @@ type User = {
 // --- 2. LOGIC XỬ LÝ ---
 
 type HeaderProps = {
-  user: User | null; // Sử dụng type User vừa định nghĩa ở trên
+  user: User | null;
   loading: boolean;
 };
 
 function getPlanLabel(user: User | null) {
- console.log("Dữ liệu User hiện tại:", user); 
-  console.log("User Roles:", user?.user_roles);
   if (!user) return "Free";
-
-  // Check 1: Ưu tiên check Role ID = 2 (Seller) trong mảng user_roles
-  // Backend trả về cấu trúc lồng nhau này
+  
+  // Check logic cũ
   if (user.user_roles && Array.isArray(user.user_roles)) {
     const isSeller = user.user_roles.some((ur) => ur.role_id === 2);
     if (isSeller) return "VIP";
   }
 
-  // Check 2: Check theo tên (Dự phòng cho trường hợp cũ)
   let roleNames: string[] = [];
-  
-  // Lấy tên từ user_roles
+
   if (user.user_roles) {
     roleNames = user.user_roles
       .map((ur) => ur.role?.role_name)
       .filter((n): n is string => !!n);
   }
-  // Lấy tên từ mảng roles phẳng
+  
   if (user.roles) {
     roleNames = [...roleNames, ...user.roles];
   }
@@ -71,7 +64,6 @@ function getPlanLabel(user: User | null) {
   if (lowerRoles.includes("vip") || lowerRoles.includes("premium")) return "VIP";
   if (lowerRoles.includes("admin")) return "Admin";
 
-  // Check 3: Check tên gói dịch vụ
   if (user.plan_name) return user.plan_name;
 
   return "Free";
@@ -82,7 +74,7 @@ function getPlanLabel(user: User | null) {
 export default function Header({ user, loading }: HeaderProps) {
   const label = getPlanLabel(user);
   
-  // Xác định VIP để đổi màu và icon
+  // Xác định VIP để đổi màu và icon badge
   const isVip = label === "VIP" || label === "Premium";
   const isAdmin = label === "Admin";
 
@@ -131,18 +123,17 @@ export default function Header({ user, loading }: HeaderProps) {
                   {user.full_name || user.email}
                 </span>
 
-                {/* --- HIỂN THỊ BADGE (VIP màu vàng, Free màu xám) --- */}
+                {/* --- HIỂN THỊ BADGE --- */}
                 <span
                   className={[
                     "hidden md:inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-extrabold border ml-1",
                     isVip 
-                      ? "bg-yellow-100 text-yellow-700 border-yellow-300" // Style Vàng cho VIP
+                      ? "bg-yellow-100 text-yellow-700 border-yellow-300" 
                       : isAdmin
-                      ? "bg-red-100 text-red-700 border-red-300" // Style Đỏ cho Admin
-                      : "bg-slate-100 text-slate-600 border-slate-200" // Style Xám cho Free
+                      ? "bg-red-100 text-red-700 border-red-300"
+                      : "bg-slate-100 text-slate-600 border-slate-200"
                   ].join(" ")}
                 >
-                  {/* Icon Vương miện nếu VIP */}
                   {isVip ? <Crown size={14} fill="currentColor" /> : 
                    isAdmin ? <Crown size={14} /> : 
                    <Sparkles size={14} />} 
@@ -152,12 +143,10 @@ export default function Header({ user, loading }: HeaderProps) {
                 <ChevronDown size={16} className="opacity-60" />
               </Link>
               
-              {/* Chỉ hiện nút nâng cấp nếu chưa phải là VIP/Admin */}
-              {!isVip && !isAdmin && (
-                 <Link to="/upgrade" className="hidden sm:inline-flex h-10 px-4 items-center justify-center rounded-xl bg-sky-600 text-white font-extrabold hover:bg-sky-700 shadow">
-                   Nâng cấp
-                 </Link>
-              )}
+              {/* ✅ ĐÃ SỬA: Luôn hiện nút Nâng cấp, không quan tâm role */}
+              <Link to="/upgrade" className="hidden sm:inline-flex h-10 px-4 items-center justify-center rounded-xl bg-sky-600 text-white font-extrabold hover:bg-sky-700 shadow">
+                Nâng cấp
+              </Link>
 
               <Link className="h-10 px-4 inline-flex items-center justify-center rounded-xl bg-slate-900 text-white hover:opacity-90" to="/logout">
                 Đăng xuất

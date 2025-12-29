@@ -183,13 +183,6 @@ export async function createBookApi(payload: CreateBookPayload) {
   return { ...res, data: normalizeBook(data) as Book };
 }
 
-// GET /api/v1/book/detail/:id
-export async function getBookDetailApi(bookId: number | string) {
-  const res = await apiFetch<any>(`/book/detail/${bookId}`, { method: "GET" });
-  const raw = res?.data ?? res;
-  return normalizeBook(raw) as Book;
-}
-
 /* ================= SEARCH + CATEGORY ================= */
 
 // ✅ CHỈ SỬA PHẦN NÀY
@@ -237,4 +230,50 @@ export async function listBooksApi(params?: {
   ) as Book[];
 
   return { books, raw: res };
+}
+// PATCH /book/edit/:id
+export async function editBookApi(bookId: number | string, payload: Partial<CreateBookPayload>) {
+  const form = new FormData();
+
+  // Chỉ append những trường có dữ liệu (Partial update)
+  if (payload.title) form.append("title", payload.title);
+  if (payload.author) form.append("author", payload.author);
+  if (payload.publisher) form.append("publisher", payload.publisher);
+  if (payload.category) form.append("category", payload.category);
+  if (payload.description) form.append("description", payload.description);
+  if (payload.seller_note) form.append("seller_note", payload.seller_note);
+  if (payload.status) form.append("status", payload.status);
+  
+  if (typeof payload.price === "number") form.append("price", String(payload.price));
+  if (typeof payload.stock === "number") form.append("stock", String(payload.stock));
+  if (typeof payload.published_year === "number") form.append("published_year", String(payload.published_year));
+
+  // Nếu có ảnh mới thì gửi lên
+  if (payload.images && payload.images.length > 0) {
+    payload.images.forEach((f) => form.append("images", f));
+  }
+
+  // Gọi API (Lưu ý path phải khớp với router backend: /book/edit/:id)
+  const res = await apiFetch<any>(`/book/edit/${bookId}`, {
+    method: "PATCH",
+    body: form,
+  });
+
+  // Trả về dữ liệu đã chuẩn hóa
+  const data = res?.data ?? res;
+  return { ...res, data: normalizeBook(data) as Book };
+}
+
+// DELETE /book/delete/:id
+export async function deleteBookApi(bookId: number | string) {
+  return apiFetch<any>(`/book/delete/${bookId}`, {
+    method: "DELETE",
+  });
+}
+
+// GET /book/detail/:id (Hàm này bạn đã có, nhưng mình để lại để double check)
+export async function getBookDetailApi(bookId: number | string) {
+  const res = await apiFetch<any>(`/book/detail/${bookId}`, { method: "GET" });
+  const raw = res?.data ?? res;
+  return normalizeBook(raw) as Book;
 }

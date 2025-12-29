@@ -115,12 +115,17 @@ export async function profileApi() {
 
 export async function logoutApi() {
   try {
-    await apiFetch("/user/logout", { method: "POST" });
+    // Tạo 1 cái đồng hồ đếm ngược 500ms
+    const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Timeout")), 500)
+    );
+    await Promise.race([
+      apiFetch("/user/logout", { method: "POST" }),
+      timeout
+    ]);
   } catch (error) {
-    console.warn("Lỗi API Logout (không quan trọng):", error);
   } finally {
     clearAuthStorage();
-
     if (typeof window !== "undefined") {
        window.location.href = "/signin";
     }

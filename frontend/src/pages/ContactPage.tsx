@@ -20,7 +20,6 @@ function safeGetTokenFromStorage() {
 }
 
 export default function ContactPage() {
-  // UI-only: sau này nối API thì thay bằng data từ BE
   const contactInfo = {
     address:
       "123 Đường Sách Nguyễn Văn Bình, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
@@ -139,7 +138,7 @@ export default function ContactPage() {
             </div>
 
             {/* RIGHT: FORM */}
-            <ContactForm topics={topics} />
+   
           </div>
         </main>
 

@@ -1,16 +1,18 @@
-export type SellerInfo = {
-  name?: string;
+// Trong file types.ts
+
+export interface SellerInfo {
+  // ... các trường cũ (name, status, online, v.v...)
+  user_id: number; // Thêm dòng này vào
+  name: string;
+  status?: "active" | "inactive" | "banned";
   online?: boolean;
   joinedText?: string;
-  rating?: number; // 0..5
+  rating?: number;
   reviewCount?: number;
-
-  // thêm các field để hiển thị đầy đủ
   phone?: string;
   email?: string;
   address?: string;
-  status?: "active" | "inactive" | "banned";
-};
+}
 
 export type BookMeta = {
   publisher?: string;

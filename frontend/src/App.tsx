@@ -38,6 +38,10 @@ import AdminPayments from "./pages/admin/Payments";
 import AdminReports from "./pages/admin/Reports";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import PaymentFailPage from "./pages/PaymentFailPage";
+import EditProfilePage from "./pages/EditProfilePage";
+import EditBookPage from "./pages/EditBookPage";
+import EditPostPage from "./pages/EditPostPage";
+import PostDetailPage from "./pages/PostDetailPage";
 
 export default function App() {
   return (
@@ -55,7 +59,11 @@ export default function App() {
           {/* reset dùng query ?token=... hoặc /reset/:token */}
           <Route path="/reset" element={<ResetPassword />} />
           <Route path="/reset/:token" element={<ResetPassword />} />
-
+          <Route path="/settings/profile" element={<EditProfilePage />} />
+          <Route path="/book/edit/:id" element={<EditBookPage />} />
+          <Route path="/post/edit/:id" element={<EditPostPage />} />
+          <Route path="/post/detail/:id" element={<PostDetailPage />} />
+<Route path="/profileid/:id" element={<UserInfoPage />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/quydinh" element={<QuyDinh />} />

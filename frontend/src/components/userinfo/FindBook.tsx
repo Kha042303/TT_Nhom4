@@ -1,13 +1,15 @@
 import { Megaphone } from "lucide-react";
-import FindRequestCard from "./ItemFindBook";
+import FindRequestCard from "./ItemFindBook"; 
 import type { FindRequestUI } from "./types";
 
 export default function FindBook({
   requests,
   totalCount,
+  onRefresh, 
 }: {
   requests?: FindRequestUI[];
   totalCount?: number;
+  onRefresh?: () => void; 
 }) {
   const list = requests ?? [];
 
@@ -28,6 +30,8 @@ export default function FindBook({
           <FindRequestCard
             key={idx}
             request={typeof r === "object" ? (r as FindRequestUI) : undefined}
+
+            onDeleted={onRefresh} 
           />
         ))}
       </div>

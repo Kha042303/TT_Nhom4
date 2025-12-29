@@ -1,21 +1,14 @@
-// src/pages/Logout.tsx
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef } from "react";
 import { logoutApi } from "../api/auth.api";
 
 export default function Logout() {
-  const nav = useNavigate();
+  const hasCalled = useRef(false);
 
   useEffect(() => {
-    const tk = localStorage.getItem("token") || localStorage.getItem("accessToken") || "";
+    if (hasCalled.current) return;
+    hasCalled.current = true;
+    logoutApi(); 
+  }, []);
 
-    localStorage.removeItem("token");
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
-
-    void logoutApi(tk); // gọi BE ngầm
-    nav("/signin", { replace: true });
-  }, [nav]);
-
-  return null;
+  return null; 
 }

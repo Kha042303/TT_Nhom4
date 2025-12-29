@@ -156,19 +156,9 @@ export default function ReportIssueForm({
                 Sách (book)
               </RadioCard>
 
-              <RadioCard
-                name="report_type"
-                value="chat"
-                checked={reportType === "chat"}
-                onChange={() => setReportType("chat")}
-              >
-                Tin nhắn (chat)
-              </RadioCard>
             </div>
 
-            <p className="mt-2 text-xs text-slate-500">
-              * Khớp với BE: report_type chỉ nhận post/user/book/chat.
-            </p>
+            
           </div>
 
           {/* Target ID */}
@@ -235,57 +225,10 @@ export default function ReportIssueForm({
               placeholder="name@example.com"
               className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-700 shadow-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
             />
-            <div className="mt-2 text-xs text-slate-500">
-              Hiện DB chưa có cột email, FE sẽ gộp email vào phần ghi chú (notes).
-            </div>
+           
           </div>
 
-          {/* Upload (BE report hiện chưa có upload) */}
-          <div>
-            <div className="text-sm font-bold text-slate-800">
-              Ảnh chụp màn hình <span className="text-slate-400">(Tùy chọn)</span>
-            </div>
-
-            <label
-              htmlFor="report-file"
-              className="mt-3 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center hover:bg-slate-100"
-            >
-              <div className="h-14 w-14 rounded-2xl bg-white shadow-sm border border-slate-200 flex items-center justify-center">
-                <ImagePlus className="text-slate-400" size={22} />
-              </div>
-
-              <div className="mt-3 font-semibold text-sky-600">
-                Tải ảnh lên{" "}
-                <span className="font-semibold text-slate-600">
-                  hoặc kéo thả vào đây
-                </span>
-              </div>
-
-              <div className="mt-1 text-xs text-slate-500">
-                PNG, JPG, GIF tối đa 10MB
-              </div>
-
-              <input
-                id="report-file"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-              />
-            </label>
-
-            {file ? (
-              <div className="mt-2 text-xs text-slate-600">
-                Đã chọn: <span className="font-semibold">{file.name}</span>
-              </div>
-            ) : null}
-
-            <div className="mt-2 text-xs text-slate-500">
-              * Backend report hiện chưa có endpoint upload file, nên FE chỉ lưu metadata ảnh vào notes.
-            </div>
-          </div>
-
-          {/* Actions */}
+         
           <div className="pt-2 flex items-center justify-end gap-3">
             <button
               type="button"
