@@ -13,7 +13,6 @@ const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
 module.exports.register = async (req, res) => {
   try {
     const { full_name, email, password, phone, address } = req.body;
-
     if (!full_name || !email || !password)
       return res.json({ code: 400, message: "Thiếu thông tin" });
 
@@ -30,7 +29,6 @@ module.exports.register = async (req, res) => {
       full_name,
       email,
       password: hashedPassword,
-      // thêm 2 field này
       phone: phone || null,
       address: address || null,
       status: "active"

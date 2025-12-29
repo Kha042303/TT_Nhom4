@@ -2,9 +2,6 @@ const http = require("http");
 const { Server } = require("socket.io");
 const fs = require("fs");
 const path = require("path");
-
-// ✅ chỉnh lại đúng đường dẫn models của bạn
-// ví dụ có thể là: const { Chat } = require("./api/v1/models");
 const { Chat } = require("./api/v1/models");
 
 function ensureDir(dir) {
@@ -12,13 +9,12 @@ function ensureDir(dir) {
 }
 
 function saveBase64ImageToChatFolder(base64Str) {
-  // base64Str dạng: "data:image/png;base64,AAAA..."
   const match = String(base64Str).match(/^data:(image\/\w+);base64,(.+)$/);
   if (!match) return null;
 
-  const mime = match[1];           // image/png
-  const data = match[2];           // base64 payload
-  const ext = mime.split("/")[1];  // png
+  const mime = match[1];         
+  const data = match[2];           
+  const ext = mime.split("/")[1]; 
 
   const chatDir = path.join(process.cwd(), "images", "chat");
   ensureDir(chatDir);
@@ -27,8 +23,6 @@ function saveBase64ImageToChatFolder(base64Str) {
   const filepath = path.join(chatDir, filename);
 
   fs.writeFileSync(filepath, Buffer.from(data, "base64"));
-
-  // server đã public /images -> images/ :contentReference[oaicite:2]{index=2}
   return `/images/chat/${filename}`;
 }
 
@@ -37,8 +31,7 @@ module.exports = function setupSocket(app) {
 
   const io = new Server(server, {
     cors: { origin: "*" },
-    // nếu bạn gửi base64 ảnh, đôi khi cần tăng buffer:
-    // maxHttpBufferSize: 5e6, // 5MB (tùy bạn)
+   
   });
 
   const onlineUsers = new Map();
@@ -47,14 +40,11 @@ module.exports = function setupSocket(app) {
     console.log("User connected:", socket.id);
 
     socket.on("addUser", (user_id) => {
-      // ✅ ép String để tránh lệch kiểu key
+     
       onlineUsers.set(String(user_id), socket.id);
       console.log("ONLINE USERS:", onlineUsers);
     });
 
-    // ✅ flow cũ: client emit sendMessage
-    // payload mới: { sender_id, receiver_id, message, images }
-    // images: có thể là mảng base64 hoặc mảng URL (nếu bạn tự upload kiểu khác)
     socket.on("sendMessage", async ({ sender_id, receiver_id, message, images }, ack) => {
       try {
         const msg = (message || "").trim();
@@ -67,16 +57,15 @@ module.exports = function setupSocket(app) {
           return ack?.({ ok: false, error: "Vui lòng nhập tin nhắn hoặc chọn ảnh" });
         }
 
-        // ✅ convert base64 -> file url, còn nếu là url thì giữ nguyên
         const imageUrls = imgs
           .map((item) => {
             if (typeof item !== "string") return null;
             if (item.startsWith("data:image/")) return saveBase64ImageToChatFolder(item);
-            return item; // assume URL/path
+            return item; 
           })
           .filter(Boolean);
 
-        // ✅ lưu DB ngay trong socket (đúng flow cũ)
+       
         const saved = await Chat.create({
           sender_id,
           receiver_id,
@@ -84,7 +73,7 @@ module.exports = function setupSocket(app) {
           images: imageUrls,
         });
 
-        // ✅ emit realtime cho receiver
+      
         const receiverSocket = onlineUsers.get(String(receiver_id));
         if (receiverSocket) {
           io.to(receiverSocket).emit("receiverMessage", {
@@ -97,7 +86,7 @@ module.exports = function setupSocket(app) {
           });
         }
 
-        // trả ACK cho sender (để FE update UI ngay)
+   
         ack?.({ ok: true, data: saved });
       } catch (e) {
         console.error(e);
