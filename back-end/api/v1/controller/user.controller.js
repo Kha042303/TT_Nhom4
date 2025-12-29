@@ -10,11 +10,8 @@ const UserRole = db.UserRole;
 const { Op } = require("sequelize");
 const ACCESS_TOKEN_TTL = "30m";
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
-// register
-// register
 module.exports.register = async (req, res) => {
   try {
-    // Nhận thêm thông tin: phone, address
     const { full_name, email, password, phone, address } = req.body;
 
     if (!full_name || !email || !password)
@@ -53,7 +50,6 @@ module.exports.register = async (req, res) => {
   }
 };
 
-// login
 module.exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -61,7 +57,6 @@ module.exports.login = async (req, res) => {
     if (!email || !password) {
       return res.json({ code: 400, message: "Thiếu email hoặc password" });
     }
-    // lấy user + user_roles active
     let user = await User.findOne({
       where: { email, deleted: "false" },
       include: [
@@ -89,8 +84,6 @@ module.exports.login = async (req, res) => {
     if (!correct) {
       return res.json({ code: 400, message: "Mật khẩu sai" });
     }
-
-    // Check trạng thái user
     if (user.status === "banned") {
       return res.json({
         code: 403,
@@ -104,7 +97,6 @@ module.exports.login = async (req, res) => {
         message: "Tài khoản đang bị tạm ngưng.",
       });
     }
-    // hết hạn seller thành buyer
     const now = new Date();
     const activeRole = user.user_roles?.[0]; 
     if (
@@ -350,9 +342,32 @@ module.exports.resetPassword = async (req, res) => {
 module.exports.getProfileById = async (req, res) => {
   try {
     const id = req.params.id;
+
     const user = await User.findOne({
-      where: { user_id: id, deleted: "false" }
+      where: { user_id: id, deleted: "false" },
+      attributes: { 
+        exclude: ["password", "password_reset_token", "password_reset_expires", "refresh_token"] 
+      },
+      include: [
+        {
+          model: UserRole,
+          as: "user_roles",
+          required: false,
+          where: { is_active: true },
+          include: [
+            {
+              model: Role,
+              as: "role",
+              attributes: ["role_id", "role_name"],
+            },
+          ],
+        },
+      ],
     });
+    if (!user) {
+      return res.json({ code: 404, message: "Người dùng không tồn tại" });
+    }
+
     return res.json({
       code: 200,
       message: "Thành công",

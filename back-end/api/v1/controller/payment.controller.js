@@ -207,7 +207,6 @@ module.exports.momoCallback = async (req, res) => {
         is_active: true,
       },
     });
-    // CHƯA CÓ ROLE → tạo buyer trước (hiếm)
     if (!userRole) {
       const expire = new Date(now);
       expire.setDate(now.getDate() + duration);

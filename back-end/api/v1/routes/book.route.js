@@ -12,11 +12,11 @@ router.get("/detail/:id", bookController.detail);
 // Tạo sách
 router.post("/create", auth,checkRole(["admin","seller"]) , uploadBook, bookController.create);
 // Sửa sách
-router.patch("/edit/:id", auth,checkRole(["admin","seller"]) , uploadBook, bookController.edit);
+router.patch("/edit/:id", auth, uploadBook, bookController.edit);
 // Đổi trạng thái sách
 router.patch("/change-status/:id", auth,checkRole(["admin","seller"]   ) , bookController.changeStatus);
 // Xóa sách
-router.delete("/delete/:id", auth,checkRole(["admin","seller"]) , bookController.delete);
+router.delete("/delete/:id", auth, bookController.delete);
 //lấy danh sách sách của người dung hiện tại
 router.get("/my-books", auth, bookController.myBooks);
 
