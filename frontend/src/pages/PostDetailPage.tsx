@@ -204,7 +204,7 @@ export default function PostDetailPage() {
                         <div className="relative bg-white z-10">
                           <p className="text-xs text-slate-400 font-bold px-3 py-2 uppercase">Tùy chọn</p>
                           <Link 
-                            to={`/profile/${author?.user_id}`}
+                            to={`/profileid/${author?.user_id}`}
                             className="flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm font-bold text-slate-700 hover:bg-sky-50 hover:text-sky-600 transition-colors"
                           >
                             <UserIcon size={18} /> Xem trang cá nhân
@@ -263,7 +263,7 @@ export default function PostDetailPage() {
                           </button>
                           
                           <Link 
-                            to={`/profile/${author?.user_id}`}
+                            to={`/profileid/${author?.user_id}`}
                             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-700 hover:bg-slate-50 flex items-center justify-center gap-2"
                           >
                              <UserIcon size={18} /> Xem trang cá nhân
