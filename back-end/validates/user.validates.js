@@ -24,13 +24,13 @@ module.exports.registerPost = (req, res, next) => {
     return res.status(400).json({ message: "Mật khẩu phải từ 6 ký tự!" });
   }
 
-  // ✅ validate phone (optional): chỉ check nếu có nhập
+  //  validate phone (optional): chỉ check nếu có nhập
   // (cho phép người dùng bỏ trống)
   if (phone && !/^(0|\+84)\d{9,10}$/.test(phone)) {
     return res.status(400).json({ message: "Số điện thoại không hợp lệ!" });
   }
 
-  // ✅ address optional: nếu nhập thì phải >= 3 ký tự (tuỳ bạn)
+  // address optional: nếu nhập thì phải >= 3 ký tự (tuỳ bạn)
   if (address && address.length < 3) {
     return res.status(400).json({ message: "Địa chỉ quá ngắn!" });
   }
