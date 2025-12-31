@@ -72,8 +72,6 @@ module.exports = function setupSocket(app) {
           message: msg || null,
           images: imageUrls,
         });
-
-      
         const receiverSocket = onlineUsers.get(String(receiver_id));
         if (receiverSocket) {
           io.to(receiverSocket).emit("receiverMessage", {
@@ -85,8 +83,6 @@ module.exports = function setupSocket(app) {
             chat_id: saved.chat_id,
           });
         }
-
-   
         ack?.({ ok: true, data: saved });
       } catch (e) {
         console.error(e);

@@ -12,7 +12,6 @@ const sequelize = new Sequelize(
     dialect: "mysql",
   }
 );
-
 const connect = async () => {
   try {
     await sequelize.authenticate();
@@ -21,7 +20,6 @@ const connect = async () => {
     console.log("Connect Fail", err);
   }
 };
-
 module.exports = {
   sequelize,
   connect,

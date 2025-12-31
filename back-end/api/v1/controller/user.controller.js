@@ -283,7 +283,7 @@ module.exports.forgotPassword = async (req, res) => {
       .createHash("sha256")
       .update(resetToken)
       .digest("hex");
-    const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
+    const expires = new Date(Date.now() + 15 * 60 * 1000); 
     await User.update(
       {
         password_reset_token: hashedToken,
@@ -292,11 +292,11 @@ module.exports.forgotPassword = async (req, res) => {
       { where: { user_id: user.user_id } }
     );
     const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
-const link = `${clientUrl}/reset-password?token=${resetToken}`;
+const link = `${clientUrl}/reset?token=${resetToken}`;
     const html = `
       <p>Xin vui lòng chọn vào đặt lại mật khẩu để thay đổi mật khẩu.</p>
       <p>sau <b>15 phút</b> đặt lại mật khẩu sẽ vô hiệu hóa.</p>
-      <button href="${link}">Đặt lại mật khẩu </button>
+      <a href="${link}">Đặt lại mật khẩu </a>
     `;
     const rs = await sendMail({ email, html });
 

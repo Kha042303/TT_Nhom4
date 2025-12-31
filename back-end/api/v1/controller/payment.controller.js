@@ -241,7 +241,7 @@ module.exports.momoCallback = async (req, res) => {
       expire.setDate(now.getDate() + duration);
       await UserRole.update(
         {
-          role_id: 2, // seller
+          role_id: 2, 
           start_at: now,
           expire_at: expire,
         },

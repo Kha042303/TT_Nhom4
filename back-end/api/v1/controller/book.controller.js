@@ -61,6 +61,7 @@ module.exports.index = async (req, res) => {
         { title: { [Op.regexp]: objectSearch.keyword } },
         { author: { [Op.regexp]: objectSearch.keyword } },
         { publisher: { [Op.regexp]: objectSearch.keyword } },
+           { book_id: { [Op.regexp]: objectSearch.keyword } },
       ];
     }
 
