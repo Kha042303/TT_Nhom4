@@ -67,7 +67,6 @@ export default function UpgradeSellerForm({
           <div>
             <div className="text-sm font-black text-white">Thông tin tài khoản</div>
             <div className="mt-1 text-xs font-semibold text-slate-200">
-              Dữ liệu lấy từ tài khoản đang đăng nhập
             </div>
           </div>
 
