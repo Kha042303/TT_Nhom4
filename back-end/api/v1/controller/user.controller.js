@@ -47,7 +47,6 @@ module.exports.register = async (req, res) => {
     return res.json({ code: 500, message: "Lỗi server" });
   }
 };
-
 module.exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -296,7 +295,7 @@ const link = `${clientUrl}/reset?token=${resetToken}`;
     const html = `
       <p>Xin vui lòng chọn vào đặt lại mật khẩu để thay đổi mật khẩu.</p>
       <p>sau <b>15 phút</b> đặt lại mật khẩu sẽ vô hiệu hóa.</p>
-      <button href="${link}">Đặt lại mật khẩu </button>
+      <a href="${link}">Đặt lại mật khẩu </a>
     `;
     const rs = await sendMail({ email, html });
 

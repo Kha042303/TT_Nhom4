@@ -22,20 +22,7 @@ const includeNonAdmin = [
     ],
   },
 ];
-const isAdmin = async (userId) => {
-  const ur = await UserRole.findOne({
-    where: { user_id: userId, is_active: true },
-    include: [
-      {
-        model: Role,
-        as: "role",
-        required: true,
-        where: { role_name: "admin" },
-      },
-    ],
-  });
-  return !!ur;
-};
+
 // GET /api/v1/admin/dashboard/stats
 module.exports.getDashboardStats = async (req, res) => {
   try {
